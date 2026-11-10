@@ -1,0 +1,273 @@
+<section class="view" id="view-akun">
+  <input type="file" id="akun-photo-file" accept="image/jpeg,image/png,image/webp" 
+         style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; opacity: 0; pointer-events: none;" 
+         onchange="akunUploadFoto(this)">
+  <div class="grid gap-5 lg:grid-cols-2">
+    <!-- Card 1: Profil Pengguna & Foto Avatar (Referensi DNZY SAKINAH) -->
+    <div class="rounded-[1.5rem] bg-white/70 p-6 shadow-ambient ring-1 ring-hairline">
+      <div class="flex items-center justify-between border-b border-hairline pb-4">
+        <h2 class="font-display text-xl font-medium text-ink">Akun saya</h2>
+        <span class="badge badge-ok"><i class="ph-light ph-check-circle text-xs"></i> Aktif</span>
+      </div>
+
+      <!-- Area Avatar + Upload Foto Profil -->
+      <div class="mt-5 flex items-center gap-5">
+        <div class="relative shrink-0" style="width: 76px; height: 76px;">
+          <label for="akun-photo-file" 
+                 class="group relative flex cursor-pointer items-center justify-center overflow-hidden rounded-full bg-ku-950 font-bold text-gold-300 ring-2 ring-gold-500/60 shadow-md transition-transform active:scale-95" 
+                 style="width: 76px; height: 76px; min-width: 76px; min-height: 76px; max-width: 76px; max-height: 76px; border-radius: 9999px; aspect-ratio: 1/1; padding: 0;"
+                 title="Klik untuk memilih foto dari perangkat">
+            <span id="akun-avatar-preview" style="width: 100%; height: 100%; border-radius: 9999px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+              <span data-user-initial="" class="text-2xl font-bold text-gold-300">U</span>
+            </span>
+            <span class="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity group-hover:opacity-100" style="border-radius: 9999px;">
+              <i class="ph-light ph-camera text-xl text-white"></i>
+            </span>
+          </label>
+          <label for="akun-photo-file" 
+                class="absolute -bottom-1 -right-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-hairline bg-white text-ink shadow-md transition-transform hover:scale-110" 
+                title="Ganti foto">
+            <i class="ph-light ph-camera text-xs"></i>
+          </label>
+        </div>
+
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-base font-bold text-ink" data-user-nama="">Ummu Aisyah</p>
+          <p class="mt-0.5 text-[11px] font-semibold text-gold-600 uppercase" data-user-role="">Owner</p>
+          <div class="mt-2.5 flex flex-wrap items-center gap-2">
+            <label for="akun-photo-file" class="btn-ghost !py-1.5 !px-3 text-[11px] font-semibold cursor-pointer inline-flex items-center gap-1.5">
+              <i class="ph-light ph-upload-simple text-xs"></i> Upload Foto
+            </label>
+            <button type="button" id="akun-btn-hapus-foto" onclick="akunHapusFoto()" class="btn-ghost hidden !py-1.5 !px-3 text-[11px] font-semibold text-danger hover:!bg-dangerbg"><i class="ph-light ph-trash text-xs"></i> Hapus Foto</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detail Informasi Akun -->
+      <dl class="mt-5 grid grid-cols-[120px_1fr] gap-y-2.5 border-t border-hairline pt-4 text-[13px]">
+        <dt class="text-inksoft">Nama Lengkap</dt><dd class="font-semibold text-ink" data-user-nama="">Ummu Aisyah</dd>
+        <dt class="text-inksoft">Username</dt><dd class="font-mono text-ku-700" id="akun-username">admin</dd>
+        <dt class="text-inksoft">Jabatan</dt><dd class="text-ink" data-user-role="">Owner</dd>
+        <dt class="text-inksoft">Penempatan</dt><dd class="text-ink"><span data-user-entitas="">PST-01</span> - <span data-user-entitas-label="">Kantor Pusat</span></dd>
+      </dl>
+
+      <!-- Tombol Simpan Profil (Menjawab kebutuhan user: Tombol Save) -->
+      <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4">
+        <p id="akun-status-msg" class="text-[12px] font-medium text-inksoft">Foto tersimpan di perangkat &amp; profil Anda.</p>
+        <button type="button" id="akun-btn-simpan" onclick="akunSimpanProfil()" class="btn-primary">
+          Simpan Profil <span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]" aria-hidden="true"></i></span>
+        </button>
+      </div>
+
+      <div id="akun-persiapan" class="mt-5 hidden rounded-2xl border border-hairline bg-cream/70 p-4">
+        <p class="text-[13px] font-semibold text-ink">Persiapan travel</p>
+        <p class="mt-0.5 text-[12px] text-inksoft" id="akun-persiapan-teks">Semua langkah sudah beres.</p>
+        <button type="button" onclick="mulaiBuka()" class="mt-3 text-[12px] font-bold text-ku-700 hover:underline">Buka panduan persiapan</button>
+      </div>
+    </div>
+
+    <!-- Card 2: Ganti kata sandi -->
+    <div class="rounded-[1.5rem] bg-white/70 p-6 shadow-ambient ring-1 ring-hairline">
+      <h2 class="font-display text-xl font-medium text-ink">Ganti kata sandi</h2>
+      <p class="mt-1 text-[12px] text-inksoft">Setelah diganti, sesi di perangkat lain otomatis keluar.</p>
+      <form class="mt-4 space-y-4" onsubmit="akunGantiSandi(); return false;">
+        <div><label class="f-label" for="akun-lama">Kata sandi saat ini</label><input id="akun-lama" type="password" class="f-input" autocomplete="current-password" required=""></div>
+        <div><label class="f-label" for="akun-baru">Kata sandi baru</label><input id="akun-baru" type="password" class="f-input" autocomplete="new-password" required="" aria-describedby="akun-syarat" oninput="akunCekSyarat()"></div>
+        <div><label class="f-label" for="akun-ulang">Ulangi kata sandi baru</label><input id="akun-ulang" type="password" class="f-input" autocomplete="new-password" required="" oninput="akunCekSyarat()"></div>
+        <ul id="akun-syarat" class="space-y-1 text-[12px] text-inksoft"></ul>
+        <p id="akun-msg" class="text-[12px] font-semibold" role="status" aria-live="polite"></p>
+        <div class="flex justify-end"><button type="submit" id="akun-btn" class="btn-primary">Simpan kata sandi<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]" aria-hidden="true"></i></span></button></div>
+      </form>
+    </div>
+  </div>
+
+<script>
+(function() {
+  window.renderUserAvatar = function (photoUrl) {
+    var photo = photoUrl;
+    if (!photo) {
+      try { photo = localStorage.getItem("dnzy_user_photo") || ""; } catch (e) { photo = ""; }
+    }
+    var initial = "U";
+
+    // 1. TopBar avatar
+    var topBarBtn = document.getElementById("topbar-user-avatar");
+    if (topBarBtn) {
+      if (photo) {
+        topBarBtn.innerHTML = '<img src="' + photo + '" style="width:100%;height:100%;border-radius:9999px;object-fit:cover;" alt="Foto Profil">';
+      } else {
+        topBarBtn.innerHTML = '<span data-user-initial="">' + initial + '</span>';
+      }
+    }
+
+    // 2. ViewAkun avatar preview & tombol hapus
+    var akunAvatar = document.getElementById("akun-avatar-preview");
+    if (akunAvatar) {
+      if (photo) {
+        akunAvatar.innerHTML = '<img src="' + photo + '" style="width:100%;height:100%;border-radius:9999px;object-fit:cover;" alt="Foto Profil">';
+      } else {
+        akunAvatar.innerHTML = '<span data-user-initial="" class="text-2xl font-bold text-gold-300">' + initial + '</span>';
+      }
+    }
+    var btnHapus = document.getElementById("akun-btn-hapus-foto");
+    if (btnHapus) {
+      if (photo) btnHapus.classList.remove("hidden");
+      else btnHapus.classList.add("hidden");
+    }
+
+    // 3. Sidebar user avatar
+    var sidebarAvatar = document.getElementById("sidebar-user-avatar");
+    if (sidebarAvatar) {
+      if (photo) {
+        sidebarAvatar.innerHTML = '<img src="' + photo + '" style="width:100%;height:100%;border-radius:9999px;object-fit:cover;" alt="Foto Profil">';
+      } else {
+        sidebarAvatar.innerHTML = '<span data-user-initial="">' + initial + '</span>';
+      }
+    }
+  };
+
+  window.akunUploadFoto = function (inputEl) {
+    var el = (inputEl && inputEl.target) ? inputEl.target : inputEl;
+    var file = (el && el.files) ? el.files[0] : null;
+    if (!file) return;
+
+    if (!file.type || !file.type.startsWith("image/")) {
+      (window.dnzyToast || alert)("Pilih berkas gambar yang valid (JPG, PNG, atau WebP).", "warning", 4000, "Format Gambar");
+      try { el.value = ""; } catch (e) {}
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      (window.dnzyToast || alert)("Ukuran berkas maksimal 5MB.", "warning", 4000, "Ukuran Terlalu Besar");
+      try { el.value = ""; } catch (e) {}
+      return;
+    }
+
+    var msg = document.getElementById("akun-status-msg");
+    if (msg) {
+      msg.className = "text-[12px] font-semibold text-gold-600";
+      msg.textContent = "Memproses gambar foto profil...";
+    }
+
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var size = 240;
+          var canvas = document.createElement("canvas");
+          canvas.width = size;
+          canvas.height = size;
+          var ctx = canvas.getContext("2d");
+
+          var minSide = Math.min(img.width, img.height);
+          var sx = (img.width - minSide) / 2;
+          var sy = (img.height - minSide) / 2;
+          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+
+          var compressedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          try {
+            localStorage.setItem("dnzy_user_photo", compressedDataUrl);
+          } catch (err) { console.warn("LocalStorage save photo:", err); }
+
+          window.renderUserAvatar(compressedDataUrl);
+
+          if (msg) {
+            msg.className = "text-[12px] font-semibold text-ku-700";
+            msg.textContent = "Foto baru siap! Klik Simpan Profil untuk konfirmasi.";
+          }
+          var btnHapus = document.getElementById("akun-btn-hapus-foto");
+          if (btnHapus) btnHapus.classList.remove("hidden");
+
+          try { el.value = ""; } catch (e) {}
+
+          try {
+            if (typeof google !== "undefined" && google.script && google.script.run && typeof google.script.run.apiUpdateSetting === "function") {
+              var token = (typeof KU !== "undefined" && KU.token) ? KU.token("erp") : "demo-token-ummu-aisyah";
+              google.script.run
+                .withSuccessHandler(function() { console.log("Foto profil tersinkron ke backend."); })
+                .withFailureHandler(function(e) { console.warn("Gagal sinkron foto ke backend:", e); })
+                .apiUpdateSetting(token, "USER_PHOTO_ADMIN", compressedDataUrl, "Foto Profil Admin");
+            }
+          } catch (syncErr) { console.warn("Sync photo err:", syncErr); }
+
+          (window.dnzyToast || alert)("Foto profil berhasil dipilih. Klik Simpan Profil untuk mengonfirmasi.", "success", 4000, "Foto Terpilih");
+        } catch (err) {
+          console.error(err);
+          (window.dnzyToast || alert)("Gagal memproses gambar: " + err.message, "error", 4000, "Gagal Memproses");
+        }
+      };
+      img.onerror = function () {
+        (window.dnzyToast || alert)("Gagal membaca file gambar. Silakan coba file lain.", "error", 4000, "Gagal Membaca");
+      };
+      img.src = e.target.result;
+    };
+    reader.onerror = function () {
+      (window.dnzyToast || alert)("Gagal membaca berkas dari perangkat.", "error", 4000, "Gagal Membaca");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.akunSimpanProfil = function () {
+    var photo = localStorage.getItem("dnzy_user_photo") || "";
+    window.renderUserAvatar(photo);
+    var msg = document.getElementById("akun-status-msg");
+    if (msg) {
+      msg.className = "text-[12px] font-semibold text-ku-700";
+      msg.textContent = "Profil dan foto berhasil disimpan.";
+    }
+    try {
+      if (photo && typeof google !== "undefined" && google.script && google.script.run && typeof google.script.run.apiUpdateSetting === "function") {
+        var token = (typeof KU !== "undefined" && KU.token) ? KU.token("erp") : "demo-token-ummu-aisyah";
+        google.script.run.apiUpdateSetting(token, "USER_PHOTO_ADMIN", photo, "Foto Profil Admin");
+      }
+    } catch (e) {}
+    (window.dnzyToast || alert)("Profil dan foto profil berhasil disimpan.", "success", 4000, "Profil Tersimpan");
+  };
+
+  window.akunHapusFoto = function () {
+    if (!confirm("Hapus foto profil dan gunakan inisial huruf?")) return;
+    try {
+      localStorage.removeItem("dnzy_user_photo");
+    } catch (err) {}
+    window.renderUserAvatar("");
+    var msg = document.getElementById("akun-status-msg");
+    if (msg) {
+      msg.className = "text-[12px] font-semibold text-inksoft";
+      msg.textContent = "Foto profil dihapus (menggunakan inisial).";
+    }
+    (window.dnzyToast || alert)("Foto profil telah dihapus. Menggunakan inisial huruf.", "info", 4000, "Foto Dihapus");
+  };
+
+  function initAkunEvents() {
+    var photoInput = document.getElementById("akun-photo-file");
+    if (photoInput && !photoInput.__bound) {
+      photoInput.__bound = true;
+      photoInput.addEventListener("change", function(e) {
+        window.akunUploadFoto(e.target || this);
+      });
+    }
+    var btnSimpan = document.getElementById("akun-btn-simpan");
+    if (btnSimpan && !btnSimpan.__bound) {
+      btnSimpan.__bound = true;
+      btnSimpan.addEventListener("click", function() {
+        window.akunSimpanProfil();
+      });
+    }
+    var btnHapus = document.getElementById("akun-btn-hapus-foto");
+    if (btnHapus && !btnHapus.__bound) {
+      btnHapus.__bound = true;
+      btnHapus.addEventListener("click", function() {
+        window.akunHapusFoto();
+      });
+    }
+    window.renderUserAvatar();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initAkunEvents);
+  } else {
+    initAkunEvents();
+  }
+})();
+</script>
+</section>

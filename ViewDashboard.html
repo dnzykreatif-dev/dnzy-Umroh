@@ -1,0 +1,129 @@
+<section class="view active space-y-5" id="view-dashboard">
+
+          <!-- Persiapan travel (27 Okt 2026, js/22-mulai.js): tampil sampai semua langkah beres atau kartu ditutup -->
+          <div id="mulai-kartu" class="hidden flex-wrap items-center justify-between gap-4 rounded-[1.5rem] bg-white/70 p-5 shadow-ambient ring-1 ring-hairline">
+            <div class="flex min-w-0 flex-1 items-start gap-4">
+              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-ku-950 text-gold-300"><i class="ph-light ph-flag-checkered text-xl" aria-hidden="true"></i></span>
+              <div class="min-w-0 flex-1">
+                <p class="text-[14px] font-semibold text-ink">Persiapan travel</p>
+                <p class="mt-0.5 text-[12px] text-inksoft" data-mulai-kartu-teks=""></p>
+                <div class="mt-2.5 h-1.5 max-w-sm overflow-hidden rounded-full bg-ku-950/10"><div data-mulai-kartu-bar="" class="h-full rounded-full bg-ku-600 transition-all duration-500" style="width:0%"></div></div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="mulaiBuka()" class="btn-primary">Lanjutkan<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-arrow-right text-[10px]" aria-hidden="true"></i></span></button>
+              <button type="button" onclick="mulaiTutupKartu()" class="flex h-9 w-9 items-center justify-center rounded-full text-inksoft/60 hover:bg-inksoft/10 hover:text-ink" aria-label="Sembunyikan kartu persiapan (bisa dibuka lagi dari Akun saya)"><i class="ph-light ph-x text-base" aria-hidden="true"></i></button>
+            </div>
+          </div>
+
+          <!-- Slot Pack banner -->
+          <div data-slot-banner="" class="hidden flex-wrap items-center justify-between gap-4 rounded-[1.5rem] bg-ku-950 p-2 shadow-ambient">
+            <div class="flex items-center gap-5 rounded-[calc(1.5rem-0.5rem)] bg-gradient-to-r from-ku-900 to-ku-950 px-6 py-4">
+              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gold-400/15 text-gold-300 ring-1 ring-gold-400/30"><i class="ph-light ph-cards text-xl"></i></span>
+              <div>
+                <p class="text-[13px] font-semibold text-cream" data-slot-text="">Kuota Jamaah</p>
+                <div class="mt-2 h-1.5 w-56 overflow-hidden rounded-full bg-cream/10"><div class="fill-anim h-full rounded-full bg-gold-400" style="width:0%" data-slot-bar=""></div></div>
+                <p class="mt-1.5 text-[11px] text-cream/55" data-slot-hint="">-</p>
+              </div>
+            </div>
+            <p data-perm-not="upgrade" class="mr-3 mb-2 hidden text-[12px] text-cream/70">Upgrade paket &amp; slot jamaah hanya dapat dilakukan Owner.</p>
+            <div data-perm="upgrade" class="mr-2 mb-2 flex flex-wrap gap-2">
+              <button onclick="openModal('modal-upgrade'); loadUpgradeOptions()" class="flex items-center gap-2.5 rounded-full bg-gold-400 py-2.5 pr-2.5 pl-5 text-[12px] font-semibold text-ku-950 transition-all duration-500 hover:bg-gold-300 active:scale-[0.97]"><i class="ph-light ph-arrow-up text-sm"></i> Upgrade Paket</button>
+              <button onclick="openModal('modal-slot')" class="flex items-center gap-2.5 rounded-full bg-cream py-2.5 pr-2.5 pl-5 text-[12px] font-semibold text-ku-900 transition-all duration-500 hover:bg-gold-200 active:scale-[0.97]">Beli Slot Pack<span class="flex h-6 w-6 items-center justify-center rounded-full bg-ku-900/10"><i class="ph-light ph-arrow-right text-xs"></i></span></button>
+            </div>
+          </div>
+
+          <!-- KPI -->
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <div class="card"><div class="card-in">
+              <div class="flex items-start justify-between"><p class="kpi-label">Total Omzet Global</p><span class="flex h-7 w-7 items-center justify-center rounded-full bg-ku-100 text-ku-700"><i class="ph-light ph-coins text-sm"></i></span></div>
+              <p class="kpi-val text-ku-600" data-kpi="omzet">Rp 78.300.000</p>
+              <p class="mt-1.5 text-[11px] font-medium text-inksoft">total pembayaran tercatat</p>
+            </div></div>
+            <div class="card"><div class="card-in">
+              <div class="flex items-start justify-between"><p class="kpi-label">Jaringan Cabang</p><span class="flex h-7 w-7 items-center justify-center rounded-full bg-ku-100 text-ku-700"><i class="ph-light ph-buildings text-sm"></i></span></div>
+              <p class="kpi-val text-ink" data-kpi="total-entitas">2 Entitas</p>
+              <p class="mt-1.5 text-[11px] font-medium text-inksoft">entitas / cabang aktif</p>
+            </div></div>
+            <div class="card"><div class="card-in">
+              <div class="flex items-start justify-between"><p class="kpi-label">Total Jamaah Global</p><span class="flex h-7 w-7 items-center justify-center rounded-full bg-ku-100 text-ku-700"><i class="ph-light ph-users-three text-sm"></i></span></div>
+              <p class="kpi-val text-ink" data-kpi="total-jamaah">19 Jamaah</p>
+              <p class="mt-1.5 text-[11px] font-medium text-inksoft" data-kpi="total-void">1 batal - data tetap tersimpan</p>
+            </div></div>
+            <div class="card"><div class="card-in">
+              <div class="flex items-start justify-between"><p class="kpi-label">Jaringan Agen</p><span class="flex h-7 w-7 items-center justify-center rounded-full bg-gold-200 text-gold-600"><i class="ph-light ph-handshake text-sm"></i></span></div>
+              <p class="kpi-val text-gold-600" data-kpi="total-agen">2 Mitra</p>
+              <p class="mt-1.5 text-[11px] font-medium text-inksoft" data-kpi="agen-tier">1 Tier 1 - 1 Tier 2</p>
+            </div></div>
+            <div class="card"><div class="card-in">
+              <div class="flex items-start justify-between"><p class="kpi-label">Jadwal Aktif</p><span class="flex h-7 w-7 items-center justify-center rounded-full bg-ku-100 text-ku-700"><i class="ph-light ph-airplane-tilt text-sm"></i></span></div>
+              <p class="kpi-val text-ink" data-kpi="jadwal-aktif">2 Tersedia</p>
+              <p class="mt-1.5 text-[11px] font-medium text-inksoft">jadwal berstatus Aktif</p>
+            </div></div>
+          </div>
+
+          <!-- Charts -->
+          <div class="grid grid-cols-1 gap-5 xl:grid-cols-3">
+            <div class="card xl:col-span-2"><div class="card-in">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div><h3 class="font-semibold text-ink">Tren Pendaftaran Nasional</h3><p class="text-xs text-inksoft">6 bulan terakhir - seluruh entitas</p></div>
+                <span class="rounded-full border border-hairline bg-white px-3 py-1 text-[11px] font-bold text-inksoft">6 Bulan Terakhir</span>
+              </div>
+              <div class="mt-6 h-52">
+                <canvas id="chart-tren"></canvas>
+              </div>
+            </div></div>
+
+            <div class="card-dark"><div class="card-dark-in">
+              <h3 class="border-b border-cream/10 pb-3 text-center text-[12px] font-bold tracking-[0.15em] text-gold-300 uppercase"><i class="ph-light ph-trophy text-sm"></i>&nbsp; Top 5 Cabang (Volume)</h3>
+              <div class="mt-4 flex-1">
+                <canvas id="chart-cabang"></canvas>
+              </div>
+              <p class="mt-4 text-center text-[10px] text-cream/40">Volume jamaah bulan ini per entitas</p>
+            </div></div>
+          </div>
+
+          <!-- Verifikasi dokumen -->
+          <div class="card"><div class="card-in">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div><h3 class="font-semibold text-ink">Verifikasi Kelengkapan Dokumen Jamaah</h3><p class="text-xs text-inksoft">Berkas (KTP/Paspor) yang memerlukan pemeriksaan segera</p></div>
+              <span class="rounded-full bg-dangerbg px-3 py-1 text-[11px] font-bold text-danger">4 Isu Berkas</span>
+            </div>
+            <div class="mt-4 overflow-x-auto">
+              <table class="tbl min-w-[680px]">
+                <thead><tr><th>Nama Lengkap Jamaah</th><th>Nomor Kontak (WhatsApp)</th><th>Isu</th><th class="text-right">Tindakan</th></tr></thead>
+                <tbody>
+      <tr>
+        <td class="font-bold tracking-wide uppercase">SITI AMINAH</td>
+        <td class="font-mono text-xs text-inksoft">081233012345</td>
+        <td><span class="badge badge-warn"><i class="ph-light ph-warning text-[11px]"></i>Paspor &lt; 6 bln, Foto KTP belum unggah</span></td>
+        <td class="text-right"><button onclick="showView('jamaah')" class="btn-gold tracking-wider uppercase">Periksa Berkas</button></td>
+      </tr>
+      <tr>
+        <td class="font-bold tracking-wide uppercase">ABDUL ROHMAN</td>
+        <td class="font-mono text-xs text-inksoft">081233049380</td>
+        <td><span class="badge badge-warn"><i class="ph-light ph-warning text-[11px]"></i>Paspor &lt; 6 bln, Foto KTP belum unggah</span></td>
+        <td class="text-right"><button onclick="showView('jamaah')" class="btn-gold tracking-wider uppercase">Periksa Berkas</button></td>
+      </tr>
+      <tr>
+        <td class="font-bold tracking-wide uppercase">FATIMAH AZ-ZAHRA</td>
+        <td class="font-mono text-xs text-inksoft">081233061725</td>
+        <td><span class="badge badge-warn"><i class="ph-light ph-warning text-[11px]"></i>Paspor &lt; 6 bln, Foto KTP belum unggah</span></td>
+        <td class="text-right"><button onclick="showView('jamaah')" class="btn-gold tracking-wider uppercase">Periksa Berkas</button></td>
+      </tr>
+      <tr>
+        <td class="font-bold tracking-wide uppercase">IBU NURHAYATI</td>
+        <td class="font-mono text-xs text-inksoft">081233086415</td>
+        <td><span class="badge badge-warn"><i class="ph-light ph-warning text-[11px]"></i>Paspor belum ada, Foto KTP belum unggah</span></td>
+        <td class="text-right"><button onclick="showView('jamaah')" class="btn-gold tracking-wider uppercase">Periksa Berkas</button></td>
+      </tr>
+      <tr>
+        <td class="font-bold tracking-wide uppercase">KELUARGA H. ABBAS</td>
+        <td class="font-mono text-xs text-inksoft">081233098760</td>
+        <td><span class="badge badge-warn"><i class="ph-light ph-warning text-[11px]"></i>Paspor &lt; 6 bln, Foto KTP belum unggah</span></td>
+        <td class="text-right"><button onclick="showView('jamaah')" class="btn-gold tracking-wider uppercase">Periksa Berkas</button></td>
+      </tr></tbody>
+              </table>
+            </div>
+          </div></div>
+        </section>

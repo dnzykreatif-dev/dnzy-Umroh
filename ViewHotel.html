@@ -1,0 +1,36 @@
+<section class="view" id="view-hotel">
+          <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
+            <div><h2 class="font-display text-2xl font-medium text-ink">Katalog Hotel</h2><p class="text-[13px] text-inksoft">Daftar akomodasi hotel jamaah di Makkah dan Madinah.</p></div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <button type="button" data-allow-readonly="" onclick="loadHotelView()" class="flex items-center gap-1.5 rounded-full border border-hairline bg-white px-4 py-2 text-[12px] font-medium text-inksoft hover:text-ink"><i class="ph-light ph-arrow-clockwise text-xs"></i> Muat ulang</button>
+              <button type="button" data-perm="HOTEL_WRITE" onclick="openHotelForm(null)" class="btn-primary"><i class="ph-light ph-plus text-sm"></i> Tambah Hotel<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-arrow-right text-[10px]"></i></span></button>
+            </div>
+          </div>
+
+          <div class="mb-4 flex flex-wrap items-center gap-2">
+            <label class="sr-only" for="ht-cari">Cari hotel</label>
+            <input id="ht-cari" type="search" class="f-input !w-full rounded-full sm:!w-64" placeholder="Cari nama hotel" oninput="renderHotel()">
+            <label class="sr-only" for="ht-filter">Saring status</label>
+            <select id="ht-filter" class="f-input !w-auto rounded-full font-medium text-inksoft" onchange="renderHotel()">
+              <option value="">Semua status</option><option value="aktif">Aktif</option><option value="nonaktif">Nonaktif</option>
+            </select>
+          </div>
+          <p id="ht-status" class="mb-4 hidden text-[12px] font-medium text-ku-700" role="status" aria-live="polite"></p>
+
+          <div id="ht-list" class="space-y-5">
+            <div class="card"><div class="card-in">
+              <h3 class="mb-3 font-semibold text-ink">Makkah &amp; Madinah</h3>
+              <div class="overflow-x-auto">
+                <table class="tbl min-w-[680px]">
+                  <thead><tr><th>Nama Hotel</th><th>Kota</th><th>Bintang</th><th>Jarak ke Masjid</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr><td class="font-bold text-ink">MIHRAB AL SAFA TOWER</td><td>Makkah</td><td class="text-gold-600">Bintang 5</td><td class="font-mono">180 m</td><td><span class="badge badge-ok">Aktif</span></td></tr>
+                    <tr><td class="font-bold text-ink">NAJMAH AJYAD SUITES</td><td>Makkah</td><td class="text-gold-600">Bintang 4</td><td class="font-mono">450 m</td><td><span class="badge badge-ok">Aktif</span></td></tr>
+                    <tr><td class="font-bold text-ink">WARDAH AL MUNAWWARAH</td><td>Madinah</td><td class="text-gold-600">Bintang 5</td><td class="font-mono">120 m</td><td><span class="badge badge-ok">Aktif</span></td></tr>
+                    <tr><td class="font-bold text-ink">RAUDHAH SAKINAH INN</td><td>Madinah</td><td class="text-gold-600">Bintang 4</td><td class="font-mono">300 m</td><td><span class="badge badge-ok">Aktif</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div></div>
+          </div>
+        </section>

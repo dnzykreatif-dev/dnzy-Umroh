@@ -1,0 +1,32 @@
+<section class="view" id="view-keuangan">
+          <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div><h2 class="font-display text-2xl font-medium text-ink">Laporan Keuangan</h2><p class="text-[13px] text-inksoft">Omzet, tagihan, piutang &amp; beban komisi</p></div>
+            <button onclick="openBayarPicker()" class="btn-primary"><i class="ph-light ph-plus text-sm"></i> Catat Pembayaran<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-arrow-right text-[10px]"></i></span></button>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="card"><div class="card-in"><p class="kpi-label">Omzet Bulan Ini</p><p class="kpi-val text-ku-600" data-kpi="keu-omzet-bulan">Rp 685,5 Jt</p></div></div>
+            <div class="card"><div class="card-in"><p class="kpi-label">Piutang (sisa tagihan)</p><p class="kpi-val text-warn" data-kpi="keu-piutang">Rp 92,0 Jt</p></div></div>
+            <div class="card"><div class="card-in"><p class="kpi-label">Beban Komisi Pending</p><p class="kpi-val text-gold-600" data-kpi="keu-komisi-pending">Rp 14,5 Jt</p></div></div>
+            <div class="card"><div class="card-in"><p class="kpi-label">Pembayaran Hari Ini</p><p class="kpi-val text-ink" data-kpi="keu-hari-ini">Rp 34,5 Jt</p></div></div>
+          </div>
+
+          <div class="card mt-5"><div class="card-in">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
+              <h3 class="font-semibold text-ink">Riwayat Transaksi Terbaru</h3>
+              <div class="flex items-center gap-2">
+                <button type="button" data-perm="DATA_EXPORT" data-allow-readonly="" onclick="exportCsv('pembayaran', this)" class="flex items-center gap-1.5 rounded-full border border-hairline bg-white px-4 py-1.5 text-[12px] font-medium text-inksoft hover:text-ku-700"><i class="ph-light ph-download-simple text-xs"></i> Export CSV</button>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="tbl min-w-[760px]">
+                <thead><tr><th>No. Kwitansi</th><th>Jamaah</th><th>Jenis</th><th class="text-right">Nominal</th><th>Tanggal</th><th class="text-right">Aksi</th></tr></thead>
+                <tbody id="riwayat-tbody">
+                  <tr><td class="font-mono text-xs font-semibold text-ku-700">KW-2026-089</td><td><p class="font-semibold text-ink">Ahmad Sulaiman</p></td><td><span class="badge badge-ok">PELUNASAN</span></td><td class="text-right font-mono font-semibold text-ink">Rp 24.500.000</td><td class="text-xs text-inksoft">18 Okt 2026</td><td class="text-right"><button class="btn-sm" onclick="cetakKwitansi('KW-2026-089')">Kwitansi</button></td></tr>
+                  <tr><td class="font-mono text-xs font-semibold text-ku-700">KW-2026-088</td><td><p class="font-semibold text-ink">Siti Aminah</p></td><td><span class="badge badge-warn">CICILAN 1</span></td><td class="text-right font-mono font-semibold text-ink">Rp 15.000.000</td><td class="text-xs text-inksoft">16 Okt 2026</td><td class="text-right"><button class="btn-sm" onclick="cetakKwitansi('KW-2026-088')">Kwitansi</button></td></tr>
+                  <tr><td class="font-mono text-xs font-semibold text-ku-700">KW-2026-087</td><td><p class="font-semibold text-ink">Nur Halimah</p></td><td><span class="badge badge-ok">PELUNASAN</span></td><td class="text-right font-mono font-semibold text-ink">Rp 34.500.000</td><td class="text-xs text-inksoft">14 Okt 2026</td><td class="text-right"><button class="btn-sm" onclick="cetakKwitansi('KW-2026-087')">Kwitansi</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div></div>
+        </section>

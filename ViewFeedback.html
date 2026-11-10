@@ -1,0 +1,39 @@
+<section class="view" id="view-feedback" data-allow-readonly="">
+          <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div><h2 class="font-display text-2xl font-medium text-ink">Feedback Jamaah</h2><p class="text-[13px] text-inksoft">Penilaian kepuasan layanan dari jamaah setelah perjalanan selesai.</p></div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="loadFeedbackView()" class="flex items-center gap-1.5 rounded-full border border-hairline bg-white px-4 py-2 text-[12px] font-medium text-inksoft hover:text-ink"><i class="ph-light ph-arrow-clockwise text-xs"></i> Muat ulang</button>
+              <button type="button" data-perm="FEEDBACK_EXPORT" data-allow-readonly="" onclick="exportFeedback(this)" class="flex items-center gap-1.5 rounded-full border border-hairline bg-white px-4 py-2 text-[12px] font-medium text-inksoft hover:text-ink"><i class="ph-light ph-download-simple text-xs"></i> Unduh CSV</button>
+            </div>
+          </div>
+          <p id="fb-cakupan" class="mb-4 hidden text-[12px] text-inksoft"><i class="ph-light ph-info text-xs"></i> Hanya jamaah entitas Anda.</p>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div class="card"><div class="card-in"><p class="kpi-label">Rata-rata penilaian</p><p class="kpi-val text-gold-600" id="fb-rata">4.9</p><p class="mt-1 text-[11px] text-inksoft">dari 5 bintang</p></div></div>
+            <div class="card"><div class="card-in"><p class="kpi-label">Jumlah penilaian</p><p class="kpi-val text-ink" id="fb-jumlah">14</p></div></div>
+            <div class="card sm:col-span-2 xl:col-span-1"><div class="card-in"><p class="kpi-label">Paket paling banyak dinilai</p><ol id="fb-paket" class="mt-2 space-y-1.5 text-[12px] text-ink"><li>1. Umroh Reguler Bintang 5 (8 ulasan)</li><li>2. Umroh Awal Ramadhan VIP (6 ulasan)</li></ol></div></div>
+          </div>
+
+          <div class="card mt-5"><div class="card-in">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
+              <h3 class="font-semibold text-ink">Semua penilaian</h3>
+              <div class="flex flex-wrap items-center gap-2">
+                <label class="sr-only" for="fb-cari">Cari penilaian</label>
+                <input id="fb-cari" type="search" class="f-input !w-56 rounded-full" placeholder="Cari jamaah, paket, komentar" oninput="renderFeedback()">
+                <label class="sr-only" for="fb-filter">Saring bintang</label>
+                <select id="fb-filter" class="f-input !w-auto rounded-full font-medium text-inksoft" onchange="renderFeedback()">
+                  <option value="">Semua bintang</option><option value="5">5 bintang</option><option value="4">4 bintang</option><option value="3">3 bintang</option><option value="2">2 bintang</option><option value="1">1 bintang</option>
+                </select>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="tbl min-w-[760px]">
+                <thead><tr><th>Tanggal</th><th>Jamaah</th><th>Paket</th><th>Bintang</th><th>Komentar</th></tr></thead>
+                <tbody id="fb-tbody">
+                  <tr><td class="text-xs text-inksoft">18 Okt 2026</td><td class="font-semibold text-ink">Ahmad Sulaiman</td><td class="text-xs text-inksoft">Umroh Reguler Bintang 5</td><td class="font-mono font-bold text-gold-600">5 / 5</td><td class="text-xs text-ink">Pelayanan muthawwif sangat ramah, hotel dekat pelataran Masjidil Haram.</td></tr>
+                  <tr><td class="text-xs text-inksoft">12 Okt 2026</td><td class="font-semibold text-ink">Nur Halimah</td><td class="text-xs text-inksoft">Umroh Awal Ramadhan VIP</td><td class="font-mono font-bold text-gold-600">5 / 5</td><td class="text-xs text-ink">Katering cita rasa Nusantara dan bimbingan manasik sangat jelas.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div></div>
+        </section>

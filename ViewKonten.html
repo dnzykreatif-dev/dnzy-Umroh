@@ -1,0 +1,94 @@
+<section class="view" id="view-konten">
+          <div class="mb-5">
+            <h2 class="font-display text-2xl font-medium text-ink">Konten &amp; Pengumuman</h2>
+            <p class="text-[13px] text-inksoft">Kelola materi promosi siap salin untuk agen serta pengumuman informasi jamaah.</p>
+          </div>
+
+          <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+            <div class="card min-w-0"><div class="card-in">
+              <h3 class="border-b border-hairline pb-3 font-semibold text-ink" id="kb-form-title">Tambah caption</h3>
+              <form onsubmit="return false;" class="mt-4 space-y-4">
+                <div>
+                  <label class="f-label" for="kb-judul">Judul</label>
+                  <input id="kb-judul" maxlength="80" class="f-input font-semibold" placeholder="mis. Promo Umrah Ramadan" oninput="kontenHitung()">
+                  <p class="mt-1 text-right font-mono text-[10px] text-inksoft/70"><span id="kb-judul-n">0</span>/80</p>
+                </div>
+                <div>
+                  <label class="f-label" for="kb-jenis">Jenis</label>
+                  <select id="kb-jenis" class="f-input"><option value="PROMO">Promo</option><option value="TESTIMONI">Testimoni</option><option value="EVENT">Event</option><option value="EDUKASI">Edukasi</option></select>
+                </div>
+                <div>
+                  <label class="f-label" for="kb-caption">Caption</label>
+                  <textarea id="kb-caption" rows="8" maxlength="1000" class="f-input" placeholder="Tulis caption yang siap ditempel agen di WhatsApp atau media sosial." oninput="kontenHitung()"></textarea>
+                  <p class="mt-1 text-right font-mono text-[10px] text-inksoft/70"><span id="kb-caption-n">0</span>/1000</p>
+                  <div class="mt-1 rounded-xl border border-hairline bg-white px-3 py-2.5 text-[11px] leading-relaxed text-inksoft">
+                    <p class="font-semibold text-ink">Variabel Otomatis</p>
+                    <p class="mt-0.5">Klik untuk menyisipkan informasi otomatis ke dalam teks promosi.</p>
+                    <div id="kb-placeholder" class="mt-2 flex flex-wrap gap-1.5"></div>
+                  </div>
+                </div>
+                <label class="flex items-center gap-2.5 text-[12px] font-medium text-ink"><input id="kb-terbit" type="checkbox" class="h-4 w-4 accent-ku-700" checked=""> Terbitkan untuk Agen</label>
+              </form>
+              <div class="mt-5 flex flex-wrap items-center gap-2.5">
+                <button type="button" onclick="kontenSimpan()" id="kb-simpan" class="btn-primary">Simpan caption<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+                <button type="button" onclick="kontenBatal()" id="kb-batal" class="hidden rounded-full border border-hairline bg-white px-5 py-2.5 text-[12px] font-semibold text-inksoft hover:text-ink">Batal edit</button>
+              </div>
+            </div></div>
+
+            <div class="card min-w-0"><div class="card-in">
+              <div class="flex items-center justify-between gap-3 border-b border-hairline pb-3">
+                <h3 class="font-semibold text-ink">Bank Konten</h3>
+                <span id="kb-ringkas" class="text-[11px] text-inksoft">2 caption aktif</span>
+              </div>
+              <p id="kb-status" class="mt-3 hidden text-[12px] font-medium text-ku-700" role="status" aria-live="polite"></p>
+              <div id="kb-list" class="mt-4 space-y-3">
+                <div class="rounded-2xl border border-hairline bg-white/70 p-4">
+                  <div class="flex items-center justify-between"><span class="badge badge-ok">PROMO</span><span class="text-[11px] text-inksoft">Terbit</span></div>
+                  <p class="mt-1.5 font-semibold text-ink">Promo Umroh Reguler Bintang 5 - Seat Terbatas</p>
+                  <p class="mt-1 text-xs text-inksoft">Raih keberkahan ibadah umroh bersama keluarga dengan fasilitas hotel bintang 5 dekat pelataran Haramain. DP ringan mulai Rp 5.000.000.</p>
+                </div>
+                <div class="rounded-2xl border border-hairline bg-white/70 p-4">
+                  <div class="flex items-center justify-between"><span class="badge badge-warn">EDUKASI</span><span class="text-[11px] text-inksoft">Terbit</span></div>
+                  <p class="mt-1.5 font-semibold text-ink">Tips Persiapan Fisik &amp; Dokumen Sebelum Keberangkatan</p>
+                  <p class="mt-1 text-xs text-inksoft">Pastikan masa berlaku paspor minimal 8 bulan sebelum keberangkatan dan ikuti jadwal manasik akbar bersama pembimbing resmi.</p>
+                </div>
+              </div>
+            </div></div>
+          </div>
+
+          <div class="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+            <div class="card min-w-0"><div class="card-in">
+              <h3 class="border-b border-hairline pb-3 font-semibold text-ink">Kirim pengumuman</h3>
+              <p class="mt-3 text-[11px] leading-relaxed text-inksoft">Bagikan informasi penting seperti jadwal manasik atau persiapan keberangkatan kepada agen dan jamaah.</p>
+              <form onsubmit="return false;" class="mt-4 space-y-4">
+                <div>
+                  <label class="f-label" for="pg-judul">Judul</label>
+                  <input id="pg-judul" maxlength="60" class="f-input font-semibold" placeholder="mis. Manasik akbar Sabtu ini" oninput="pengumumanHitung()">
+                  <p class="mt-1 text-right font-mono text-[10px] text-inksoft/70"><span id="pg-judul-n">0</span>/60</p>
+                </div>
+                <div>
+                  <label class="f-label" for="pg-isi">Isi</label>
+                  <textarea id="pg-isi" rows="4" maxlength="200" class="f-input" placeholder="Tulis pesan singkat. Rincian bisa diteruskan lewat WhatsApp." oninput="pengumumanHitung()"></textarea>
+                  <p class="mt-1 text-right font-mono text-[10px] text-inksoft/70"><span id="pg-isi-n">0</span>/200</p>
+                </div>
+                <div>
+                  <label class="f-label" for="pg-audiens">Penerima</label>
+                  <select id="pg-audiens" class="f-input" onchange="pengumumanHitungPenerima()"><option value="SEMUA">Semua agen dan jamaah</option><option value="AGEN">Agen saja</option><option value="JAMAAH">Jamaah saja</option></select>
+                  <p id="pg-penerima" class="mt-1.5 text-[11px] text-inksoft"></p>
+                </div>
+              </form>
+              <button type="button" onclick="pengumumanKirim()" id="pg-kirim" class="btn-primary mt-5">Kirim pengumuman<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-paper-plane-tilt text-[10px]"></i></span></button>
+            </div></div>
+
+            <div class="card min-w-0"><div class="card-in">
+              <h3 class="border-b border-hairline pb-3 font-semibold text-ink">Pengumuman terakhir</h3>
+              <div id="pg-list" class="mt-4 space-y-3">
+                <div class="rounded-2xl border border-hairline bg-white/70 p-4">
+                  <div class="flex items-center justify-between text-[11px] text-inksoft"><span>Semua Agen &amp; Jamaah</span><span>15 Okt 2026</span></div>
+                  <p class="mt-1 font-semibold text-ink">Jadwal Manasik Akbar Kloter November 2026</p>
+                  <p class="mt-0.5 text-xs text-inksoft">Manasik akan dilaksanakan hari Sabtu pukul 08.30 WIB di Aula Kantor Pusat. Mohon hadir tepat waktu.</p>
+                </div>
+              </div>
+            </div></div>
+          </div>
+        </section>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>dnzy Umroh ERP - Berkah Umroh Sejahtera</title>
+  <?!= include('Styles'); ?>
+</head>
+<body class="bg-cream font-sans text-ink">
+
+  <div class="flex min-h-screen">
+    <!-- Sidebar Navigation -->
+    <?!= include('Sidebar'); ?>
+
+    <div id="sidebar-backdrop" class="fixed inset-0 z-30 hidden bg-ku-950/70 backdrop-blur-sm" onclick="toggleSidebar()"></div>
+
+    <!-- Main Content Area -->
+    <main class="min-w-0 flex-1 lg:ml-[248px]">
+      <?!= include('TopBar'); ?>
+
+      <div class="px-5 py-6 md:px-7">
+        <?!= include('ViewDashboard'); ?>
+        <?!= include('ViewJamaah'); ?>
+        <?!= include('ViewAgency'); ?>
+        <?!= include('ViewKomisi'); ?>
+        <?!= include('ViewProspek'); ?>
+        <?!= include('ViewKatalog'); ?>
+        <?!= include('ViewHotel'); ?>
+        <?!= include('ViewHitung'); ?>
+        <?!= include('ViewJadwal'); ?>
+        <?!= include('ViewPerforma'); ?>
+        <?!= include('ViewKeuangan'); ?>
+        <?!= include('ViewFeedback'); ?>
+        <?!= include('ViewKonten'); ?>
+        <?!= include('ViewUsers'); ?>
+        <?!= include('ViewSetting'); ?>
+        <?!= include('ViewAkun'); ?>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modals & Overlays -->
+  <?!= include('Modals'); ?>
+
+  <!-- Scripts & Controllers -->
+  <?!= include('Scripts'); ?>
+  <?!= include('DemoShim'); ?>
+  <?!= include('ErpApp'); ?>
+
+</body>
+</html>

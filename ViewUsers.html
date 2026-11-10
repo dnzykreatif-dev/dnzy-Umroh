@@ -1,0 +1,43 @@
+<section class="view" id="view-users">
+          <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
+            <!-- Toggle: Staff / Entitas (paralel userTab GAS) -->
+            <div class="flex rounded-full border border-hairline bg-white/70 p-1">
+              <button id="us-tab-staff" onclick="usersSub('staff')" class="rounded-full bg-ku-700 px-5 py-2 text-[12px] font-bold text-cream transition-all duration-500">Data Staff Akun</button>
+              <button id="us-tab-entitas" onclick="usersSub('entitas')" class="flex items-center gap-1.5 rounded-full px-5 py-2 text-[12px] font-bold text-inksoft transition-all duration-500"><i class="ph-light ph-buildings text-sm"></i>Jaringan Entitas (Cabang)</button>
+            </div>
+            <button id="us-add-btn" onclick="openModal('modal-user')" class="btn-primary"><i class="ph-light ph-plus text-sm"></i> Tambah Staff Baru<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-arrow-right text-[10px]"></i></span></button>
+          </div>
+
+          <!-- Sub: Data Staff Akun -->
+          <div id="us-staff" class="card"><div class="card-in">
+            <div class="overflow-x-auto">
+              <table class="tbl min-w-[720px]">
+                <thead><tr><th>Nama Lengkap</th><th>Username</th><th>Role / Jabatan</th><th>Entitas</th><th>Status</th><th class="text-right">Aksi</th></tr></thead>
+                <tbody id="us-staff-tbody">
+                  <tr><td class="font-semibold text-ink">Ummu Aisyah</td><td class="font-mono text-xs text-ku-700">admin</td><td><span class="badge badge-gold">OWNER</span></td><td class="text-xs text-inksoft">PST-01 - Kantor Pusat</td><td><span class="badge badge-ok">AKTIF</span></td><td class="text-right"><span class="text-xs text-inksoft">Akun Utama</span></td></tr>
+                  <tr><td class="font-semibold text-ink">H. Fauzan Ridwan</td><td class="font-mono text-xs text-ku-700">cabang.bdg</td><td><span class="badge badge-mute">KEPALA CABANG</span></td><td class="text-xs text-inksoft">CBG-BDG - Cabang Bandung</td><td><span class="badge badge-ok">AKTIF</span></td><td class="text-right"><button class="btn-sm" onclick="openModal('modal-user')">Kelola</button></td></tr>
+                  <tr><td class="font-semibold text-ink">Nadia Rahmawati</td><td class="font-mono text-xs text-ku-700">ops.pusat</td><td><span class="badge badge-mute">ADMIN OPS</span></td><td class="text-xs text-inksoft">PST-01 - Kantor Pusat</td><td><span class="badge badge-ok">AKTIF</span></td><td class="text-right"><button class="btn-sm" onclick="openModal('modal-user')">Kelola</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="mt-4 border-t border-hairline pt-4 text-[11px] text-inksoft"><i class="ph-light ph-info text-xs"></i> Kelola hak akses staf operasional, keuangan, dan pimpinan cabang sesuai penempatan entitas.</p>
+          </div></div>
+
+          <!-- Sub: Jaringan Entitas -->
+          <div id="us-entitas" class="card hidden"><div class="card-in">
+            <div class="mb-4 flex items-center justify-between">
+              <h3 class="font-semibold text-ink">Jaringan Entitas Bisnis</h3>
+              <span id="ent-quota-badge" class="rounded-full bg-ku-100 px-2.5 py-1 font-mono text-[10px] font-bold text-ku-700">2 Entitas Aktif</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="tbl min-w-[760px]">
+                <thead><tr><th>ID Kode</th><th>Nama Cabang</th><th>Tipe</th><th>Staf, agen, bagian cabang</th><th class="text-right">Aksi</th></tr></thead>
+                <tbody id="us-entitas-tbody">
+                  <tr><td class="font-mono text-xs font-bold text-ku-700">PST-01</td><td class="font-semibold text-ink">Kantor Pusat</td><td><span class="badge badge-gold">PUSAT</span></td><td class="text-xs text-inksoft">2 Staf - 3 Agen</td><td class="text-right"><span class="text-xs text-inksoft">Entitas Utama</span></td></tr>
+                  <tr><td class="font-mono text-xs font-bold text-ku-700">CBG-BDG</td><td class="font-semibold text-ink">Cabang Bandung</td><td><span class="badge badge-ok">CABANG</span></td><td class="text-xs text-inksoft">1 Staf - 1 Agen</td><td class="text-right"><button class="btn-sm" onclick="openModal('modal-entitas')">Edit</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="mt-4 border-t border-hairline pt-4 text-[11px] text-inksoft"><i class="ph-light ph-info text-xs"></i> Daftar kantor pusat dan cabang resmi travel yang beroperasi.</p>
+          </div></div>
+        </section>

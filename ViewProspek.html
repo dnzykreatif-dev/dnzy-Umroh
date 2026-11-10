@@ -1,0 +1,43 @@
+<section class="view" id="view-prospek">
+          <div class="mb-5">
+            <h2 class="font-display text-2xl font-medium text-ink">CRM &amp; Prospek</h2>
+            <p class="mt-1 max-w-2xl text-[13px] text-inksoft">Ringkasan prospek calon jamaah dan konversi pendaftaran agen.</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 md:grid-cols-5">
+            <div class="card"><div class="card-in !p-4"><p class="kpi-label !text-[10px]">New</p><p class="mt-1 font-display text-2xl font-medium text-ink" data-prospek="NEW">1</p></div></div>
+            <div class="card"><div class="card-in !p-4"><p class="kpi-label !text-[10px]">Warm</p><p class="mt-1 font-display text-2xl font-medium text-ink" data-prospek="WARM">1</p></div></div>
+            <div class="card"><div class="card-in !p-4"><p class="kpi-label !text-[10px] !text-gold-600">Follow-up</p><p class="mt-1 font-display text-2xl font-medium text-gold-600" data-prospek="FOLLOW_UP">2</p></div></div>
+            <div class="card"><div class="card-in !p-4"><p class="kpi-label !text-[10px]">Commitment</p><p class="mt-1 font-display text-2xl font-medium text-ink" data-prospek="COMMITMENT">0</p></div></div>
+            <div class="rounded-[1.25rem] bg-ku-700 p-2 shadow-ambient"><div class="h-full rounded-[calc(1.25rem-0.5rem)] bg-ku-800 p-4"><p class="kpi-label !text-[10px] !text-gold-300">Closed/Won</p><p class="mt-1 font-display text-2xl font-medium text-gold-300" data-prospek="CLOSED/WON">1</p><p class="mt-0.5 text-[10px] text-cream/60" data-prospek="conversion">Win rate 20%</p></div></div>
+          </div>
+
+          <div class="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
+            <div class="card xl:col-span-2"><div class="card-in">
+              <h3 class="font-semibold text-ink">Konversi per Agen (bulan ini)</h3>
+              <div class="mt-5 space-y-3.5" id="prospek-per-agen">
+                <div>
+                  <div class="mb-1.5 flex items-baseline justify-between text-[12px]">
+                    <p class="font-semibold text-ink">H. Karimullah <span class="font-mono text-[10px] text-inksoft/60">Tier 1</span></p>
+                    <p class="font-mono text-inksoft">1 won / 5 leads</p>
+                  </div>
+                  <div class="h-2 rounded-full bg-inksoft/10"><div class="fill-anim h-full rounded-full bg-ku-600" style="width:20%"></div></div>
+                </div>
+              </div>
+            </div></div>
+            <div class="card"><div class="card-in">
+              <h3 class="font-semibold text-ink">Jadwal Follow-up</h3>
+              <p class="mt-1 text-[11px] text-inksoft">Daftar tindak lanjut calon jamaah terdekat</p>
+              <div class="mt-4 space-y-2.5" id="prospek-due">
+                <div class="flex items-center justify-between rounded-xl border border-red-500/20 bg-dangerbg/40 px-4 py-2.5 text-[12px] text-danger">
+                  <span class="font-semibold">UST. SALMAN <span class="font-mono text-[9px] font-normal opacity-60">- H. Karimullah</span></span>
+                  <span class="font-mono text-[10px] opacity-70">Perlu tindak lanjut</span>
+                </div>
+                <div class="flex items-center justify-between rounded-xl border border-warn/20 bg-warnbg/60 px-4 py-2.5 text-[12px] text-warn">
+                  <span class="font-semibold">IBU NURHAYATI <span class="font-mono text-[9px] font-normal opacity-60">- H. Karimullah</span></span>
+                  <span class="font-mono text-[10px] opacity-70">Terjadwal</span>
+                </div>
+              </div>
+            </div></div>
+          </div>
+        </section>

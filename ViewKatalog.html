@@ -1,0 +1,67 @@
+<section class="view" id="view-katalog">
+          <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
+            <div><h2 class="font-display text-2xl font-medium text-ink">Paket Umroh &amp; Brosur</h2><p class="text-[13px] text-inksoft">Harga, fasilitas, dan brosur yang diunduh agen dengan kontak masing-masing</p></div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <button data-perm="BROSUR_STUDIO" onclick="openBrosur({ jenis: &quot;jadwal&quot; })" class="btn-ghost"><i class="ph-light ph-image text-sm"></i> Brosur Jadwal</button>
+              <button data-perm="katalog_tulis" onclick="openKatalogForm(null)" class="btn-primary"><i class="ph-light ph-plus text-sm"></i> Tambah Produk<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-arrow-right text-[10px]"></i></span></button>
+            </div>
+          </div>
+
+          <div class="card"><div class="card-in">
+            <div class="overflow-x-auto">
+              <table class="tbl min-w-[900px]">
+                <thead><tr><th>Nama Paket &amp; Jadwal</th><th>Jenis &amp; Durasi</th><th class="text-center">Harga Jual (Brosur)</th><th>Hotel &amp; Maskapai</th><th class="text-right">Aksi</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><p class="font-bold text-ink">Umrah VIP Oktober</p><p class="text-[11px] text-inksoft/60">12 Okt 2026</p></td>
+                    <td><p class="text-[12px] font-bold text-ku-700">VIP *4/*5</p><span class="mt-1 inline-block rounded-full bg-inksoft/10 px-2 py-0.5 text-[10px] font-semibold text-inksoft">9 Hari</span></td>
+                    <td class="text-center"><p class="font-mono text-[14px] font-bold text-ku-600">38.500.000</p><p class="mt-0.5 text-[10px] text-inksoft/60">Setor: 35.000.000</p></td>
+                    <td>
+                      <p class="text-[11px] font-semibold"><span class="text-inksoft/60">Makkah:</span> Pullman Zamzam</p>
+                      <p class="mt-0.5 text-[11px] font-semibold"><span class="text-inksoft/60">Madinah:</span> Anwar Al Madinah</p>
+                      <p class="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-ku-600"><i class="ph-light ph-airplane-tilt text-[10px]"></i>Saudia Airlines</p>
+                    </td>
+                    <td class="text-right"><div class="flex justify-end items-center gap-1.5">
+                      <button class="btn-sm" title="Lihat brosur eceran"><i class="ph-light ph-image text-sm"></i></button>
+                      <button onclick="openModal('modal-katalog')" class="btn-sm" title="Edit"><i class="ph-light ph-pencil-simple text-sm"></i></button>
+                      <button class="btn-sm hover:!bg-dangerbg hover:!text-danger" title="Hapus (Pusat only)"><i class="ph-light ph-trash text-sm"></i></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td><p class="font-bold text-ink">Umrah Reguler Desember</p><p class="text-[11px] text-inksoft/60">05 Des 2026</p></td>
+                    <td><p class="text-[12px] font-bold text-ku-700">Spesial</p><span class="mt-1 inline-block rounded-full bg-inksoft/10 px-2 py-0.5 text-[10px] font-semibold text-inksoft">10 Hari</span></td>
+                    <td class="text-center"><p class="font-mono text-[14px] font-bold text-ku-600">29.800.000</p><p class="mt-0.5 text-[10px] text-inksoft/60">Setor: 27.000.000</p></td>
+                    <td>
+                      <p class="text-[11px] font-semibold"><span class="text-inksoft/60">Makkah:</span> Elaf Ajyad</p>
+                      <p class="mt-0.5 text-[11px] font-semibold"><span class="text-inksoft/60">Madinah:</span> Rama Al Madinah</p>
+                      <p class="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-ku-600"><i class="ph-light ph-airplane-tilt text-[10px]"></i>Lion Air</p>
+                    </td>
+                    <td class="text-right"><div class="flex justify-end items-center gap-1.5">
+                      <button class="btn-sm"><i class="ph-light ph-image text-sm"></i></button>
+                      <button onclick="openModal('modal-katalog')" class="btn-sm"><i class="ph-light ph-pencil-simple text-sm"></i></button>
+                      <button class="btn-sm hover:!bg-dangerbg hover:!text-danger"><i class="ph-light ph-trash text-sm"></i></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td><p class="font-bold text-ink">Umrah Ekonomis Desember</p><p class="text-[11px] text-inksoft/60">05 Des 2026</p></td>
+                    <td><p class="text-[12px] font-bold text-ku-700">Ekonomis</p><span class="mt-1 inline-block rounded-full bg-inksoft/10 px-2 py-0.5 text-[10px] font-semibold text-inksoft">10 Hari</span></td>
+                    <td class="text-center"><p class="font-mono text-[14px] font-bold text-ku-600">25.900.000</p><p class="mt-0.5 text-[10px] text-inksoft/60">Setor: 23.500.000</p></td>
+                    <td>
+                      <p class="text-[11px] font-semibold"><span class="text-inksoft/60">Makkah:</span> Zuwar Al Bait</p>
+                      <p class="mt-0.5 text-[11px] font-semibold"><span class="text-inksoft/60">Madinah:</span> Muhtaroh Zahabi</p>
+                      <p class="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-ku-600"><i class="ph-light ph-airplane-tilt text-[10px]"></i>Lion Air</p>
+                    </td>
+                    <td class="text-right"><div class="flex justify-end items-center gap-1.5">
+                      <button class="btn-sm !text-inksoft/30" title="Belum ada brosur - inherit jadwal induk" disabled=""><i class="ph-light ph-image text-sm"></i></button>
+                      <button onclick="openModal('modal-katalog')" class="btn-sm"><i class="ph-light ph-pencil-simple text-sm"></i></button>
+                      <button class="btn-sm hover:!bg-dangerbg hover:!text-danger"><i class="ph-light ph-trash text-sm"></i></button>
+                    </div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4 text-[12px] text-inksoft">
+              <p data-katalog-count="">Menampilkan 3 paket umroh</p>
+            </div>
+          </div></div>
+        </section>

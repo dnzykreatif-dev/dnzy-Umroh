@@ -1,0 +1,60 @@
+<section class="view" id="view-jadwal">
+          <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
+            <div class="flex min-w-[220px] flex-1 items-center gap-2 rounded-full bg-white px-4 py-2 shadow-innerhl">
+              <i class="ph-light ph-magnifying-glass text-sm text-inksoft/50"></i>
+              <input class="w-full bg-transparent text-[13px] outline-none placeholder:text-inksoft/50" placeholder="Cari Nama Paket...">
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <select class="f-input !w-auto rounded-full font-medium text-inksoft"><option>Semua Status</option><option>Aktif (Masih Buka)</option><option>Penuh (Kuota Habis)</option><option>Selesai (Sudah Berangkat)</option><option>Arsip (Nonaktif)</option></select>
+              <select class="f-input !w-auto rounded-full font-medium text-inksoft"><option>Semua Bulan</option><option>Oktober</option><option>November</option><option>Desember</option></select>
+              <select class="f-input !w-auto rounded-full font-medium text-inksoft"><option>Semua Tahun</option><option>2026</option><option>2027</option></select>
+              <select class="f-input !w-auto rounded-full font-medium text-inksoft"><option>Semua Entitas</option><option>PUSAT (Global)</option><option>Cabang Jakarta</option><option>Cabang Surabaya</option></select>
+              <button onclick="openJadwalForm(null)" class="btn-primary"><i class="ph-light ph-plus text-sm"></i> Tambah Jadwal<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-arrow-right text-[10px]"></i></span></button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div class="card"><div class="card-in">
+              <div class="flex items-start justify-between gap-2">
+                <div><span class="font-mono text-[11px] font-bold text-ku-600">KL-1448-01</span><h3 class="mt-0.5 font-display text-lg font-medium text-ink">Umroh Reguler Bintang 5</h3></div>
+                <span class="badge badge-ok">AKTIF</span>
+              </div>
+              <p class="mt-2 text-[12px] text-inksoft"><i class="ph-light ph-calendar-blank"></i> Berangkat: <strong>15 Nov 2026</strong> - Pulang: <strong>23 Nov 2026</strong></p>
+              <p class="mt-1 text-[12px] text-inksoft"><i class="ph-light ph-airplane-tilt"></i> Saudia Airlines (SV-817)</p>
+              <div class="mt-4">
+                <div class="mb-1 flex justify-between text-[11px] font-semibold"><span>Keterisian Seat</span><span class="font-mono">38 / 45 Pax (84%)</span></div>
+                <div class="h-2 overflow-hidden rounded-full bg-creamdark"><div class="h-full rounded-full bg-ku-600" style="width:84%"></div></div>
+              </div>
+            </div></div>
+            <div class="card"><div class="card-in">
+              <div class="flex items-start justify-between gap-2">
+                <div><span class="font-mono text-[11px] font-bold text-ku-600">KL-1448-02</span><h3 class="mt-0.5 font-display text-lg font-medium text-ink">Umroh Plus Turki Cappadocia</h3></div>
+                <span class="badge badge-ok">AKTIF</span>
+              </div>
+              <p class="mt-2 text-[12px] text-inksoft"><i class="ph-light ph-calendar-blank"></i> Berangkat: <strong>05 Des 2026</strong> - Pulang: <strong>16 Des 2026</strong></p>
+              <p class="mt-1 text-[12px] text-inksoft"><i class="ph-light ph-airplane-tilt"></i> Turkish Airlines (TK-057)</p>
+              <div class="mt-4">
+                <div class="mb-1 flex justify-between text-[11px] font-semibold"><span>Keterisian Seat</span><span class="font-mono">28 / 35 Pax (80%)</span></div>
+                <div class="h-2 overflow-hidden rounded-full bg-creamdark"><div class="h-full rounded-full bg-ku-600" style="width:80%"></div></div>
+              </div>
+            </div></div>
+            <div class="card"><div class="card-in">
+              <div class="flex items-start justify-between gap-2">
+                <div><span class="font-mono text-[11px] font-bold text-ku-600">KL-1448-03</span><h3 class="mt-0.5 font-display text-lg font-medium text-ink">Umroh Awal Ramadhan VIP</h3></div>
+                <span class="badge badge-warn">SEGERA PENUH</span>
+              </div>
+              <p class="mt-2 text-[12px] text-inksoft"><i class="ph-light ph-calendar-blank"></i> Berangkat: <strong>18 Feb 2027</strong> - Pulang: <strong>01 Mar 2027</strong></p>
+              <p class="mt-1 text-[12px] text-inksoft"><i class="ph-light ph-airplane-tilt"></i> Garuda Indonesia (GA-980)</p>
+              <div class="mt-4">
+                <div class="mb-1 flex justify-between text-[11px] font-semibold"><span>Keterisian Seat</span><span class="font-mono">27 / 30 Pax (90%)</span></div>
+                <div class="h-2 overflow-hidden rounded-full bg-creamdark"><div class="h-full rounded-full bg-gold-500" style="width:90%"></div></div>
+              </div>
+            </div></div>
+          </div>
+
+          <div class="card mt-5"><div class="card-in !p-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 text-[12px] text-inksoft">
+              <p data-jadwal-count="">Menampilkan 3 kloter keberangkatan aktif</p>
+            </div>
+          </div></div>
+        </section>

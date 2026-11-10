@@ -1,0 +1,76 @@
+<section class="view" id="view-jamaah">
+          <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div><h2 class="font-display text-2xl font-medium text-ink">Data Jamaah</h2><p class="text-[13px] text-inksoft"><span data-jamaah-total="">20</span> jamaah terdaftar</p></div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <button onclick="downloadImportTemplate()" class="btn-ghost"><i class="ph-light ph-download-simple text-sm"></i> Template</button>
+              <label class="btn-ghost cursor-pointer"><i class="ph-light ph-upload-simple text-sm"></i> Import Excel<input type="file" accept=".xlsx,.xls" class="hidden" onchange="importJamaahExcel(this)"></label>
+              <button onclick="openJamaahForm(null)" class="btn-primary"><i class="ph-light ph-plus text-sm"></i> Tambah Jamaah<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-arrow-right text-[10px]"></i></span></button>
+            </div>
+          </div>
+
+          <div class="card"><div class="card-in">
+            <div class="flex flex-wrap items-center gap-3 border-b border-hairline pb-4">
+              <div class="flex min-w-[220px] flex-1 items-center gap-2 rounded-full bg-white px-4 py-2 shadow-innerhl">
+                <i class="ph-light ph-magnifying-glass text-sm text-inksoft/50"></i>
+                <input class="w-full bg-transparent text-[13px] outline-none placeholder:text-inksoft/50" placeholder="Cari nama, NIK, atau No. paspor...">
+              </div>
+              <select class="f-input !w-auto rounded-full font-medium text-inksoft"><option>Semua Entitas</option><option>PST-01 Pusat</option><option>Cabang Jakarta</option><option>Cabang Surabaya</option></select>
+              <select class="f-input !w-auto rounded-full font-medium text-inksoft"><option>Semua Status Dokumen</option><option>Lengkap</option><option>Pending</option></select>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="tbl min-w-[900px]">
+                <thead><tr><th>Jamaah</th><th>NIK / Paspor</th><th>Dokumen</th><th>Entitas</th><th class="text-right">Aksi</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><p class="font-bold text-ink">AHMAD SULAIMAN</p><p class="text-[11px] text-inksoft/70">JMH-1001</p></td>
+                    <td class="font-mono text-xs text-inksoft"><p>3204010203000021</p><p class="text-gold-600">X9012000</p></td>
+                    <td><span class="badge badge-ok">Lengkap</span></td>
+                    <td class="text-[12px] text-inksoft">PST-01</td>
+                    <td class="text-right"><div class="flex justify-end gap-1">
+                      <button class="btn-sm" title="Lihat dokumen" onclick="openDokumen(&quot;JMH-1001&quot;)"><i class="ph-light ph-file-image text-sm"></i></button>
+                      <button onclick="editJamaah(&quot;JMH-1001&quot;)" class="btn-sm" title="Edit"><i class="ph-light ph-pencil-simple text-sm"></i></button>
+                      <button onclick="toggleVoidJamaah(&quot;JMH-1001&quot;, false)" class="btn-sm hover:!bg-warnbg hover:!text-warn" title="Tandai batal (tetap dihitung kuota)"><i class="ph-light ph-prohibit text-sm"></i></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td><p class="font-bold text-ink">SITI AMINAH</p><p class="text-[11px] text-inksoft/70">JMH-1002</p></td>
+                    <td class="font-mono text-xs text-inksoft"><p>32040102030013721</p><p class="text-gold-600">X9012031</p></td>
+                    <td><span class="badge badge-warn">Pending</span></td>
+                    <td class="text-[12px] text-inksoft">PST-01</td>
+                    <td class="text-right"><div class="flex justify-end gap-1">
+                      <button class="btn-sm" title="Lihat dokumen" onclick="openDokumen(&quot;JMH-1002&quot;)"><i class="ph-light ph-file-image text-sm"></i></button>
+                      <button onclick="editJamaah(&quot;JMH-1002&quot;)" class="btn-sm" title="Edit"><i class="ph-light ph-pencil-simple text-sm"></i></button>
+                      <button onclick="toggleVoidJamaah(&quot;JMH-1002&quot;, false)" class="btn-sm hover:!bg-warnbg hover:!text-warn" title="Tandai batal (tetap dihitung kuota)"><i class="ph-light ph-prohibit text-sm"></i></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td><p class="font-bold text-ink/50">MUHAMMAD RIZKI <span class="ml-1 rounded-full bg-inksoft/10 px-2 py-0.5 text-[9px] font-bold tracking-wider text-inksoft/70 uppercase">Batal</span></p><p class="text-[11px] text-inksoft/70">JMH-1003</p></td>
+                    <td class="font-mono text-xs text-inksoft/50"><p>32040102030027421</p><p class="text-gold-600">X9012062</p></td>
+                    <td><span class="badge badge-warn">Pending</span></td>
+                    <td class="text-[12px] text-inksoft/50">PST-01</td>
+                    <td class="text-right"><div class="flex justify-end gap-1">
+                      <button class="btn-sm" title="Lihat dokumen" onclick="openDokumen(&quot;JMH-1003&quot;)"><i class="ph-light ph-file-image text-sm"></i></button>
+                      <button onclick="editJamaah(&quot;JMH-1003&quot;)" class="btn-sm" title="Edit"><i class="ph-light ph-pencil-simple text-sm"></i></button>
+                      <button onclick="toggleVoidJamaah(&quot;JMH-1003&quot;, true)" class="btn-sm hover:!bg-warnbg hover:!text-warn" title="Aktifkan kembali"><i class="ph-light ph-prohibit text-sm"></i></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td><p class="font-bold text-ink">NUR HALIMAH</p><p class="text-[11px] text-inksoft/70">JMH-1004</p></td>
+                    <td class="font-mono text-xs text-inksoft"><p>32040102030041121</p><p class="text-gold-600">-</p></td>
+                    <td><span class="badge badge-ok">Lengkap</span></td>
+                    <td class="text-[12px] text-inksoft">PST-01</td>
+                    <td class="text-right"><div class="flex justify-end gap-1">
+                      <button class="btn-sm" title="Lihat dokumen" onclick="openDokumen(&quot;JMH-1004&quot;)"><i class="ph-light ph-file-image text-sm"></i></button>
+                      <button onclick="editJamaah(&quot;JMH-1004&quot;)" class="btn-sm" title="Edit"><i class="ph-light ph-pencil-simple text-sm"></i></button>
+                      <button onclick="toggleVoidJamaah(&quot;JMH-1004&quot;, false)" class="btn-sm hover:!bg-warnbg hover:!text-warn" title="Tandai batal (tetap dihitung kuota)"><i class="ph-light ph-prohibit text-sm"></i></button>
+                    </div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4 text-[12px] text-inksoft">
+              <p>Menampilkan 20 dari 20 jamaah (hal. 1/1)</p>
+              <div class="flex items-center gap-1.5" data-jamaah-pager=""></div>
+            </div>
+          </div></div>
+        </section>

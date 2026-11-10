@@ -1,0 +1,2001 @@
+<script>
+// Auto-seed and initialize credentials for dnzy Umroh GAS environment
+try {
+  localStorage.setItem("ku_demo_lead", "1");
+  localStorage.setItem("ku_demo_uji", "1");
+  if (!localStorage.getItem("ku_erp_token")) {
+    localStorage.setItem("ku_erp_token", "demo-token-ummu-aisyah");
+  }
+} catch (e) {
+  console.warn("localStorage init failed", e);
+}
+
+/**
+ * DEMO SHIM - KelolaUmroh demo.kelolaumroh.com
+ * ============================================================================
+ * Demo instance TANPA DATABASE (keputusan PO 14 Sep 2026):
+ *   - Seluruh CRUD dijalankan di BROWSER via localStorage (key: ku_demo_db)
+ *   - HANYA form lead (demo gate) yang dikirim ke Control Plane API ->
+ *     tabel platform_leads (prospek kelolaumroh.com) - bukan data demo.
+ *
+ * File ini DROP-IN REPLACEMENT untuk /assets/ku-tenant-api.js:
+ * menyediakan window.KU dengan interface identik (token, erp.*, agent.*,
+ * jamaah.*, publicJadwal, branding, ...) - semua "request" diresolve lokal.
+ *
+ * Reset data: KU.demoReset() (tombol "Reset Demo" di halaman index).
+ * Data awal (seed): +/-20 jamaah, 3 agen, 2 jadwal, katalog, 6 hotel (nama fiktif),
+ * pembayaran, prospek Kanban - data fiktif "Berkah Umroh Sejahtera" (PRD 3.3).
+ * ============================================================================
+ */
+window.KU = (function () {
+  "use strict";
+
+  const DB_KEY = "ku_demo_db";
+  const TOKEN_KEYS = { erp: "ku_erp_token", agent: "ku_agent_token", jamaah: "ku_jamaah_token" };
+
+  // -------------------------------------------------------------
+  // DM-2 - Penjaga alur marketing: halaman app demo hanya boleh dibuka
+  // setelah gate lead (demo/index.html) diisi. Ini BUKAN kontrol keamanan
+  // (bisa dilewati devtools) - hanya menjaga lead dari iklan tetap tercatat.
+  // Ditempatkan di shim supaya otomatis berlaku di semua halaman demo.
+  // -------------------------------------------------------------
+  (function gateGuard() {
+    try {
+      const p = (window.location.pathname || "");
+      // Gate & aset demo (index di root demo, /assets/) tidak dijaga.
+      const isAppPage = /\/(erp|agent|jamaah)\//.test(p);
+      if (isAppPage && !localStorage.getItem("ku_demo_lead")) {
+        /* lead gate bypassed for GAS */
+        return;
+      }
+    } catch (e) { /* localStorage tidak tersedia - abaikan */ }
+  })();
+
+  // -------------------------------------------------------------
+  // Mode uji (22 Okt 2026): masuk lewat tautan sekali pakai dari admin Control Plane (tombol "Demo (mode uji)").
+  // Peran ERP bisa dipilih - izin = salinan Rbac::MATRIX tenant-app (DEMO_RBAC, dijaga tes DemoRbacParityTest di
+  // Control Plane), data bisa diatur ulang, event analitik demo tidak dikirim. Penolakan server (403) dan pembatasan
+  // data per cabang TIDAK disimulasikan - itu diuji di tenant sungguhan.
+  // -------------------------------------------------------------
+  const DEMO_UJI = (() => { try { return localStorage.getItem("ku_demo_uji") === "1"; } catch (e) { return false; } })();
+  const DEMO_RBAC = {"perms":{"OWNER":["USER_WRITE","USER_DELETE","ENTITAS_WRITE","ENTITAS_TOGGLE","JAMAAH_WRITE","JAMAAH_DELETE","JAMAAH_IMPORT","JAMAAH_MIGRATE","JADWAL_WRITE","JADWAL_DELETE","PLOT_WRITE","LOGISTIK_WRITE","KATALOG_WRITE","KATALOG_DELETE","HOTEL_WRITE","MOVE_CANCEL","JADWAL_PNL","TAGIHAN_WRITE","PEMBAYARAN_WRITE","PEMBAYARAN_DELETE","KUITANSI_READ","MANIFEST_DOWNLOAD","KOMISI_WRITE","KOMISI_DISBURSE","KOMISI_TIER_WRITE","AGEN_WRITE","AGEN_TOGGLE","AGEN_DELETE","BROSUR_STUDIO","BROSUR_WRITE","MEDIA_UPLOAD","DOCS_MUTATE","DOCS_READ","OCR_USE","PROSPEK_CONVERT","FEEDBACK_READ","FEEDBACK_EXPORT","SETTING_WRITE","GEMINI_TEST","DATA_MAINTENANCE","KONTEN_WRITE","NOTIF_READ","LA_DATABASE","LANGGANAN_MANAGE","DATA_EXPORT","LICENSE_SYNC","BANTUAN","REKENING_WRITE"],"KEPALA_ENTITAS":["USER_WRITE","USER_DELETE","JAMAAH_WRITE","JAMAAH_DELETE","JADWAL_WRITE","PLOT_WRITE","LOGISTIK_WRITE","KATALOG_WRITE","MOVE_CANCEL","JADWAL_PNL","TAGIHAN_WRITE","PEMBAYARAN_WRITE","PEMBAYARAN_DELETE","KUITANSI_READ","KOMISI_WRITE","KOMISI_DISBURSE","KOMISI_TIER_WRITE","AGEN_WRITE","AGEN_TOGGLE","AGEN_DELETE","MEDIA_UPLOAD","DOCS_MUTATE","DOCS_READ","OCR_USE","PROSPEK_CONVERT","FEEDBACK_READ","FEEDBACK_EXPORT","NOTIF_READ","LA_DATABASE"],"ADMIN_OPERASIONAL":["USER_SELF","JAMAAH_WRITE","JAMAAH_IMPORT","JADWAL_WRITE","JADWAL_DELETE","PLOT_WRITE","LOGISTIK_WRITE","KATALOG_WRITE","KATALOG_DELETE","HOTEL_WRITE","MANIFEST_DOWNLOAD","AGEN_WRITE","BROSUR_STUDIO","BROSUR_WRITE","MEDIA_UPLOAD","DOCS_MUTATE","DOCS_READ","OCR_USE","PROSPEK_CONVERT","KONTEN_WRITE","LA_DATABASE"],"ADMIN_FINANCE":["USER_SELF","JADWAL_PNL","TAGIHAN_WRITE","PEMBAYARAN_WRITE","KUITANSI_READ","KOMISI_WRITE","KOMISI_DISBURSE","MEDIA_UPLOAD","PROSPEK_CONVERT","LA_DATABASE"]},"manageable":{"OWNER":["OWNER","KEPALA_ENTITAS","ADMIN_OPERASIONAL","ADMIN_FINANCE"],"KEPALA_ENTITAS":["ADMIN_OPERASIONAL","ADMIN_FINANCE"]}};
+  const DEMO_ROLES = {
+    OWNER: { id: "USR-001", label: "Owner", nama: "Ummu Aisyah", entitas: "PST-01", ket: "Semua menu, pengaturan, langganan, ekspor data" },
+    KEPALA_ENTITAS: { id: "USR-004", label: "Kepala Cabang", nama: "Hasan Basri", entitas: "CAB-02", ket: "Cabang Bandung - jamaah, jadwal, pembayaran, komisi, staf cabang" },
+    ADMIN_OPERASIONAL: { id: "USR-003", label: "Admin Operasional", nama: "Siti Khadijah", entitas: "PST-01", ket: "Jamaah, jadwal, katalog, manifest, brosur" },
+    ADMIN_FINANCE: { id: "USR-002", label: "Admin Finance", nama: "Ahmad Fauzi", entitas: "PST-01", ket: "Pembayaran, kuitansi, komisi, laba rugi jadwal" },
+  };
+  function demoRole() {
+    if (!DEMO_UJI) return "OWNER";
+    try { const r = localStorage.getItem("ku_demo_role"); return DEMO_ROLES[r] ? r : "OWNER"; } catch (e) { return "OWNER"; }
+  }
+
+  // Panel "Mode uji" dinonaktifkan untuk versi produksi
+  if (false && DEMO_UJI && /\/(erp|agent|jamaah)\//.test(location.pathname)) {
+    const mountUji = () => {
+      if (document.getElementById("ku-uji-panel")) return;
+      const isErp = /\/erp\//.test(location.pathname);
+      const cur = demoRole();
+      const wrap = document.createElement("div");
+      wrap.id = "ku-uji-panel";
+      wrap.setAttribute("style", "position:fixed;left:12px;bottom:" + (isErp ? 12 : 84) + "px;z-index:9999;display:flex;flex-direction:column;align-items:flex-start;gap:8px;font:12px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;color:#1f1d1a");
+      const roles = Object.entries(DEMO_ROLES).map(([k, r]) =>
+        '<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:10px;cursor:pointer;' + (k === cur ? "background:#eef6f1" : "") + '">'
+        + '<input type="radio" name="ku-uji-role" value="' + k + '"' + (k === cur ? " checked" : "") + ' style="margin-top:3px">'
+        + '<span><b style="display:block">' + r.label + '</b><span style="color:#6b665d;font-size:11px">' + r.ket + '</span></span></label>').join("");
+      wrap.innerHTML =
+        '<div data-uji-body hidden style="width:290px;max-width:calc(100vw - 24px);max-height:70vh;overflow:auto;background:#fffdf8;border:1px solid #e5dfd1;border-radius:16px;padding:14px;box-shadow:0 12px 32px rgba(0,0,0,.18)">'
+        + '<p style="margin:0 0 8px;font-weight:700;font-size:13px">Mode uji</p>'
+        + (isErp ? '<p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#6b665d;text-transform:uppercase;letter-spacing:.06em">Masuk sebagai</p>' + roles
+          + '<p style="margin:8px 0 0;font-size:11px;color:#6b665d">Menu &amp; tombol mengikuti aturan peran aplikasi asli. Penolakan server dan pembatasan data per cabang tidak disimulasikan.</p>'
+          : '<p style="margin:0;font-size:11px;color:#6b665d">Pilihan peran tersedia di ERP.</p>')
+        + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">'
+        + '<button type="button" data-uji-reset style="border:1px solid #e5dfd1;background:#fff;border-radius:999px;padding:6px 12px;font-weight:600;cursor:pointer">Atur ulang data demo</button>'
+        + '<a href="/" style="border:1px solid #e5dfd1;background:#fff;border-radius:999px;padding:6px 12px;font-weight:600;color:inherit;text-decoration:none">Halaman demo</a></div></div>'
+        + '<button type="button" data-uji-toggle aria-expanded="false" style="border:1px solid #d9b34a;background:#fff6d8;color:#5c4400;border-radius:999px;padding:6px 14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.14)">'
+        + 'Mode uji' + (isErp ? " - " + DEMO_ROLES[cur].label : "") + '</button>';
+      document.body.appendChild(wrap);
+      const body = wrap.querySelector("[data-uji-body]"), tog = wrap.querySelector("[data-uji-toggle]");
+      tog.addEventListener("click", () => { body.hidden = !body.hidden; tog.setAttribute("aria-expanded", String(!body.hidden)); });
+      wrap.querySelectorAll('input[name="ku-uji-role"]').forEach((el) => el.addEventListener("change", () => {
+        try { localStorage.setItem("ku_demo_role", el.value); } catch (e) { /* mode privat */ }
+        location.reload();
+      }));
+      wrap.querySelector("[data-uji-reset]").addEventListener("click", () => {
+        if (confirm("Atur ulang semua data demo ke kondisi awal? Perubahan di browser ini akan hilang.")) window.KU_demoReset();
+      });
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mountUji); else mountUji();
+  }
+
+  // Hotel contoh Katalog Hotel (B-31, 24 Okt 2026). Nama FIKTIF (bukan merek hotel sungguhan), disimpan kapital
+  // seperti HotelController. HTL-1003 dan HTL-1006 belum dipakai katalog, jadi bisa dicoba dihapus di demo.
+  const DEMO_HOTEL = [
+    { id_hotel: "HTL-1001", nama: "MIHRAB AL SAFA TOWER", kota: "MAKKAH", bintang: 5, jarak_meter: 180, foto_url: null, status_aktif: true },
+    { id_hotel: "HTL-1002", nama: "NAJMAH AJYAD SUITES", kota: "MAKKAH", bintang: 4, jarak_meter: 450, foto_url: null, status_aktif: true },
+    { id_hotel: "HTL-1003", nama: "QAMAR AL MISFALAH", kota: "MAKKAH", bintang: 3, jarak_meter: 1200, foto_url: null, status_aktif: true },
+    { id_hotel: "HTL-1004", nama: "WARDAH AL MUNAWWARAH", kota: "MADINAH", bintang: 5, jarak_meter: 120, foto_url: null, status_aktif: true },
+    { id_hotel: "HTL-1005", nama: "RAUDHAH SAKINAH INN", kota: "MADINAH", bintang: 4, jarak_meter: 300, foto_url: null, status_aktif: true },
+    { id_hotel: "HTL-1006", nama: "NAKHLAH CENTRAL MADINAH", kota: "MADINAH", bintang: 3, jarak_meter: 650, foto_url: null, status_aktif: true },
+  ];
+
+  // Brosur contoh fiktif (25 Okt 2026): VIP Oktober punya area kosong hitam di bawah (230 dari 1920 px = permil 120),
+  // Reguler Desember tanpa area kosong (kontak agen di pita). Isinya sama dengan data jadwal & katalog demo.
+  const DEMO_BROSUR = { vip: "/assets/img/brosur-demo-vip.jpg", reguler: "/assets/img/brosur-demo-reguler.jpg" };
+
+  // -------------------------------------------------------------
+  // LocalStorage database (with in-memory fallback for sandboxed iframes)
+  // -------------------------------------------------------------
+  const _memStore = { ku_erp_token: "demo-token-ummu-aisyah", ku_demo_lead: "1", ku_demo_uji: "1" };
+  const _sGet = (k) => { try { return localStorage.getItem(k) ?? _memStore[k] ?? null; } catch (e) { return _memStore[k] ?? null; } };
+  const _sSet = (k, v) => { _memStore[k] = String(v); try { localStorage.setItem(k, String(v)); } catch (e) {} };
+  const _sDel = (k) => { delete _memStore[k]; try { localStorage.removeItem(k); } catch (e) {} };
+
+  function load() {
+    try {
+      const raw = _sGet(DB_KEY);
+      if (raw) return upgrade(JSON.parse(raw));
+    } catch (e) { /* corrupt */ }
+    const db = seed();
+    save(db);
+    return db;
+  }
+  function save(db) { _sSet(DB_KEY, JSON.stringify(db)); }
+  // Data demo lama di browser pengunjung: lengkapi field bagian cabang (PO 23 Okt 2026; tipe VIP dihapus)
+  function upgrade(d) {
+    (d.entitas || []).forEach((e) => {
+      if (!e.tipe_entitas || e.tipe_entitas === "VIP") e.tipe_entitas = e.id === "PST-01" ? "PUSAT" : "CABANG";
+      if (e.komisi_cabang == null) e.komisi_cabang = e.id === "PST-01" ? 0 : 2000000;
+    });
+    // Komisi tier (26 Okt 2026): agen lama DCM -> Tier 1, SCM -> Tier 2, UCM -> Tier 3 di entitasnya (paritas migration 015)
+    if (!Array.isArray(d.tier_agen)) {
+      const s = seed();
+      d.tier_agen = s.tier_agen.filter((t) => (d.entitas || []).some((e) => e.id === t.id_entitas));
+      (d.entitas || []).forEach((e) => { if (!d.tier_agen.some((t) => t.id_entitas === e.id)) demoTierBawaan(d, e.id); });
+      (d.agen || []).forEach((a) => {
+        const t = d.tier_agen.find((x) => x.id_entitas === (a.id_entitas || "PST-01") && x.urutan === ({ DCM: 1, SCM: 2 }[a.role] || 3));
+        a.id_tier = t ? t.id : null;
+      });
+    }
+    d.komisi_cabang_jenis = d.komisi_cabang_jenis || {};
+    delete d.komisi_cabang_paket;
+    // Feedback & Bank Konten (23 Okt 2026): buang feedback format lama (tanpa jadwal), isi contoh untuk pengunjung lama
+    if (!d._seed_feedback_konten) {
+      const s = seed();
+      d.feedback = (d.feedback || []).filter((f) => f.jadwal_id).concat(s.feedback);
+      d.bank_konten = d.bank_konten || s.bank_konten;
+      d._seed_feedback_konten = true;
+    }
+    // Brosur (25 Okt 2026): Studio Brosur diganti unggah brosur per jadwal/varian; pengunjung lama dapat brosur contoh
+    if (!d._seed_brosur) {
+      const contoh = { "JDWL-1725": [DEMO_BROSUR.vip, 120], "JDWL-1731": [DEMO_BROSUR.reguler, null] };
+      (d.jadwal || []).forEach((j) => { if (contoh[j.id_jadwal] && !j.link_brosur) [j.link_brosur, j.brosur_area] = contoh[j.id_jadwal]; });
+      d._seed_brosur = true;
+    }
+    // Katalog Hotel (B-31, 24 Okt 2026): tambah hotel contoh, lalu teks hotel katalog lama dihubungkan ke Katalog Hotel
+    // seperti migrasi 013. Nama hotel sungguhan dari seed lama diganti hotel fiktif; teks lain menjadi hotel baru
+    // (bintang dan jarak kosong, dilengkapi admin).
+    if (!Array.isArray(d.katalog_hotel)) {
+      d.katalog_hotel = DEMO_HOTEL.map((h) => ({ ...h }));
+      const LAMA = { "PULLMAN ZAMZAM": "HTL-1001", "ELAF AJYAD": "HTL-1002", "ANWAR AL MADINAH": "HTL-1004", "RAMA AL MADINAH": "HTL-1005" };
+      (d.katalog || []).forEach((k) => {
+        [["hotel_mekkah", "MAKKAH"], ["hotel_madinah", "MADINAH"]].forEach(([kolom, kota]) => {
+          const teks = String(k[kolom] || "").replace(/\s+/g, " ").trim().toUpperCase();
+          let h = null;
+          if (teks) {
+            h = d.katalog_hotel.find((x) => x.kota === kota && (x.id_hotel === LAMA[teks] || x.nama.toLowerCase() === teks.toLowerCase()));
+            if (!h) {
+              h = { id_hotel: "HTL-LAMA-" + (d.katalog_hotel.length + 1), nama: teks, kota, bintang: null, jarak_meter: null, foto_url: null, status_aktif: true };
+              d.katalog_hotel.push(h);
+            }
+          }
+          k[kolom + "_id"] = h ? h.id_hotel : null;
+          k[kolom] = h ? h.nama : null;
+        });
+        k.hotel_setaraf = !!k.hotel_setaraf;
+      });
+    }
+    return d;
+  }
+  function db() { return load(); }
+
+  function seed() {
+    const jm = [];
+    const nama = ["AHMAD SULAIMAN", "SITI AMINAH", "MUHAMMAD RIZKI", "NUR HALIMAH", "ABDUL ROHMAN",
+      "FATIMAH AZ-ZAHRA", "H. MAHMUD", "IBU NURHAYATI", "KELUARGA H. ABBAS", "UST. ZAINAL",
+      "ROHMAH SAFITRI", "IBNU HAJAR", "DEWI KARTIKA", "SUTRISNO WIBOWO", "MULYADI RAHMAN",
+      "HJ. RUFIAH", "SYAIFUL BAHRI", "LAILATUL BADRIYAH", "AGUS SETIAWAN", "KHODIJAH PUTRI"];
+    const prov = ["JAWA BARAT", "DKI JAKARTA", "JAWA TIMUR", "BANTEN", "JAWA TENGAH"];
+    for (let i = 0; i < nama.length; i++) {
+      jm.push({
+        id_jamaah: "JMH-" + (1001 + i), nama: nama[i],
+        j_kelamin: i % 3 === 1 ? "P" : "L",
+        no_identitas: "3204010" + String(20300000 + i * 137).padStart(9, "0").slice(0, 9) + "21",
+        no_paspor: i % 4 === 3 ? null : "X" + (9012000 + i * 31),
+        tgl_lahir: "19" + (60 + (i % 30)) + "-0" + (1 + (i % 9)) + "-1" + (i % 9),
+        no_hp: "0812" + String(33000000 + i * 12345),
+        provinsi: prov[i % prov.length],
+        status_dokumen: i % 3 === 0 ? "Lengkap" : "Pending",
+        status_void: i === 2 ? 1 : 0,
+        id_entitas: "PST-01",
+        created_at: "2026-0" + (4 + (i % 5)) + "-1" + (i % 9) + " 09:00:00",
+      });
+    }
+    return {
+      jamaah: jm,
+      jadwal: [
+        { id_jadwal: "JDWL-1725", nama_paket: "Umrah VIP Oktober", tipe_tanggal: "Pasti", tgl_keberangkatan: "2026-10-12", keterangan_waktu: "", kuota: 40, blokir_kuota: 2, status_aktif: "Aktif", link_brosur: DEMO_BROSUR.vip, brosur_area: 120 },
+        { id_jadwal: "JDWL-1731", nama_paket: "Umrah Reguler Desember", tipe_tanggal: "Pasti", tgl_keberangkatan: "2026-12-05", keterangan_waktu: "", kuota: 40, blokir_kuota: 3, status_aktif: "Aktif", link_brosur: DEMO_BROSUR.reguler, brosur_area: null },
+      ],
+      // Katalog Hotel (B-31): nama hotel FIKTIF, bukan merek hotel sungguhan
+      katalog_hotel: DEMO_HOTEL.map((h) => ({ ...h })),
+      katalog: [
+        { id_katalog: "KAT-5001", jadwal_id: "JDWL-1725", jenis_paket: "VIP *4/*5", harga_jual_std: 38500000, harga_setor_std: 35000000, durasi_hari: 9, maskapai: "Saudia Airlines", hotel_mekkah: "MIHRAB AL SAFA TOWER", hotel_madinah: "WARDAH AL MUNAWWARAH", hotel_mekkah_id: "HTL-1001", hotel_madinah_id: "HTL-1004", hotel_setaraf: false, nama_paket: "Umrah VIP Oktober" },
+        { id_katalog: "KAT-5002", jadwal_id: "JDWL-1731", jenis_paket: "Spesial", harga_jual_std: 29800000, harga_setor_std: 27000000, durasi_hari: 10, maskapai: "Lion Air", hotel_mekkah: "NAJMAH AJYAD SUITES", hotel_madinah: "RAUDHAH SAKINAH INN", hotel_mekkah_id: "HTL-1002", hotel_madinah_id: "HTL-1005", hotel_setaraf: true, nama_paket: "Umrah Reguler Desember" },
+      ],
+      peserta: [
+        { jadwal_id: "JDWL-1725", jamaah_id: "JMH-1001", nama: "AHMAD SULAIMAN", kategori_peserta: "Jamaah Reguler", jenis_paket: "VIP *4/*5", harga_jual_riil: 38500000, harga_setor_riil: 35000000, terbayar: 10000000 },
+        { jadwal_id: "JDWL-1725", jamaah_id: "JMH-1004", nama: "NUR HALIMAH", kategori_peserta: "Jamaah Reguler", jenis_paket: "VIP *4/*5", harga_jual_riil: 38500000, harga_setor_riil: 35000000, terbayar: 38500000 },
+        { jadwal_id: "JDWL-1725", jamaah_id: "JMH-1010", nama: "UST. ZAINAL", kategori_peserta: "Tour Leader", jenis_paket: "VIP *4/*5", harga_jual_riil: 0, harga_setor_riil: 0, terbayar: 0 },
+        { jadwal_id: "JDWL-1731", jamaah_id: "JMH-1002", nama: "SITI AMINAH", kategori_peserta: "Jamaah Reguler", jenis_paket: "Spesial", harga_jual_riil: 29800000, harga_setor_riil: 27000000, terbayar: 29800000 },
+      ],
+      pembayaran: [
+        { id_bayar: "INV-08921-4470", jamaah_id: "JMH-1001", jadwal_id: "JDWL-1725", nominal: 10000000, jenis: "Uang Muka", tanggal: "2026-09-02", jamaah_nama: "AHMAD SULAIMAN" },
+        { id_bayar: "INV-08918-2213", jamaah_id: "JMH-1004", jadwal_id: "JDWL-1725", nominal: 38500000, jenis: "Pelunasan", tanggal: "2026-09-01", jamaah_nama: "NUR HALIMAH" },
+        { id_bayar: "INV-08914-8831", jamaah_id: "JMH-1002", jadwal_id: "JDWL-1731", nominal: 29800000, jenis: "Pelunasan", tanggal: "2026-08-28", jamaah_nama: "SITI AMINAH" },
+      ],
+      agen: [
+        { id_agen: "AGN-101", nama: "H. Karimullah", role: "DCM", no_hp: "081288991020", wilayah: "Jakarta Timur", alamat: "", status_akun: "AKTIF", id_tier: 1, id_upline: null, nama_bank: "BCA", no_rekening: "1234567890", nama_rekening: "H. KARIMULLAH" },
+        { id_agen: "AGN-104", nama: "Fatimah Az-Zahra", role: "SCM", no_hp: "085722113030", wilayah: "Depok", alamat: "", status_akun: "AKTIF", id_tier: 2, id_upline: "AGN-101", nama_bank: "BANK SYARIAH INDONESIA (BSI)", no_rekening: "7211987654", nama_rekening: "FATIMAH AZ-ZAHRA" },
+        { id_agen: "AGN-106", nama: "Salman Al-Farisi", role: "UCM", no_hp: "082144556677", wilayah: "Bekasi", alamat: "", status_akun: "NONAKTIF", id_tier: 3, id_upline: "AGN-104" },
+      ],
+      prospek: [
+        { id_prospek: "PRP-1", nama: "ABDUL ROHMAN", no_hp: "081388991020", status_pipeline: "NEW", tgl_followup: null, catatan: "Baru masuk", id_agen: "AGN-101" },
+        { id_prospek: "PRP-2", nama: "H. MAHMUD", no_hp: "081255667788", status_pipeline: "WARM", tgl_followup: null, catatan: "Tertarik - edukasi", id_agen: "AGN-101" },
+        { id_prospek: "PRP-3", nama: "UST. SALMAN", no_hp: "082144556677", status_pipeline: "FOLLOW_UP", tgl_followup: "2026-09-09", catatan: "Lewat 2 hari", id_agen: "AGN-101" },
+        { id_prospek: "PRP-4", nama: "IBU NURHAYATI", no_hp: "081933445566", status_pipeline: "FOLLOW_UP", tgl_followup: "2026-09-16", catatan: "Besok", id_agen: "AGN-101" },
+        { id_prospek: "PRP-5", nama: "KELUARGA H. ABBAS", no_hp: "081122334455", status_pipeline: "CLOSED/WON", tgl_followup: null, catatan: "3 jamaah - VIP", id_agen: "AGN-101" },
+      ],
+      // Data fiktif entitleitas/staff untuk layar Pengaturan demo (DM-1)
+      users: [
+        { id_user: "USR-001", nama_lengkap: "UMMU AISYAH", username: "admin", role: "OWNER", status_akun: "AKTIF", id_entitas: "PST-01" },
+        { id_user: "USR-002", nama_lengkap: "AHMAD FAUZI", username: "finance", role: "ADMIN_FINANCE", status_akun: "AKTIF", id_entitas: "PST-01" },
+        { id_user: "USR-003", nama_lengkap: "SITI KHADIJAH", username: "ops", role: "ADMIN_OPERASIONAL", status_akun: "AKTIF", id_entitas: "PST-01" },
+      ],
+      entitas: [
+        { id: "PST-01", nama_entitas: "Kantor Pusat", tipe_entitas: "PUSAT", kedalaman_level: 3, status_aktif: "Aktif", komisi_cabang: 0, kota: "Jakarta Timur" },
+        { id: "CAB-02", nama_entitas: "Cabang Bandung", tipe_entitas: "CABANG", kedalaman_level: 3, status_aktif: "Aktif", komisi_cabang: 2000000, kota: "Bandung" },
+        { id: "CAB-03", nama_entitas: "Cabang Surabaya", tipe_entitas: "CABANG", kedalaman_level: 3, status_aktif: "Nonaktif", komisi_cabang: 1500000, kota: "Surabaya" },
+      ],
+      // Tabel komisi tier per entitas (menu Komisi Agen). Margin demo: VIP 3,5 jt, Spesial 2,8 jt.
+      tier_agen: [
+        { id: 1, id_entitas: "PST-01", nama: "Tier 1", urutan: 1, nominal_bawaan: 2500000, aktif: true, penimpa: { "VIP *4/*5": 3000000 } },
+        { id: 2, id_entitas: "PST-01", nama: "Tier 2", urutan: 2, nominal_bawaan: 1500000, aktif: true, penimpa: {} },
+        { id: 3, id_entitas: "PST-01", nama: "Tier 3", urutan: 3, nominal_bawaan: 800000, aktif: true, penimpa: {} },
+        { id: 4, id_entitas: "CAB-02", nama: "Senior", urutan: 1, nominal_bawaan: 1500000, aktif: true, penimpa: {} },
+        { id: 5, id_entitas: "CAB-02", nama: "Junior", urutan: 2, nominal_bawaan: 800000, aktif: true, penimpa: {} },
+        { id: 6, id_entitas: "CAB-03", nama: "Tier 1", urutan: 1, nominal_bawaan: 1000000, aktif: true, penimpa: {} },
+      ],
+      komisi_cabang_jenis: {},
+      // Contoh penilaian jamaah (perjalanan Desember lalu) untuk layar Feedback Jamaah ERP demo
+      feedback: [
+        { tanggal: "2026-01-04T09:12:00", jamaah_id: "JMH-0912", nama_jamaah: "HJ. ROSMIATI", jadwal_id: "JDWL-1601", nama_paket: "Umrah Akhir Tahun 2025", jenis_paket: "Spesial", rating: 5, komentar: "Pembimbing sabar, hotel dekat Masjidil Haram. Insya Allah berangkat lagi bersama keluarga.", id_entitas: "PST-01" },
+        { tanggal: "2026-01-03T20:40:00", jamaah_id: "JMH-0915", nama_jamaah: "BAMBANG SUTRISNO", jadwal_id: "JDWL-1601", nama_paket: "Umrah Akhir Tahun 2025", jenis_paket: "Ekonomis", rating: 4, komentar: "Secara umum baik. Bus di Madinah sempat terlambat satu kali.", id_entitas: "PST-01" },
+      ],
+      _seed_feedback_konten: true,
+      bank_konten: [
+        { id_media: "MED-1", judul: "Promo daftar awal", jenis: "PROMO", status: "TERBIT", urutan: 1, diubah_oleh: "demo", diubah_pada: "2026-10-20T08:00:00",
+          caption: "Bismillah, kursi umrah bersama {NAMA_TRAVEL} untuk keberangkatan Desember masih tersedia.\n\nDP mulai {DP_MINIMAL}, pelunasan paling lambat {BATAS_PELUNASAN} hari sebelum berangkat.\n\nBalas pesan ini untuk info jadwal dan harga lengkap." },
+        { id_media: "MED-2", judul: "Testimoni jamaah", jenis: "TESTIMONI", status: "TERBIT", urutan: 2, diubah_oleh: "demo", diubah_pada: "2026-10-20T08:05:00",
+          caption: "\"Pembimbing sabar, hotel dekat Masjidil Haram.\" Hj. Rosmiati, jamaah {NAMA_TRAVEL}.\n\nIngin merasakan pengalaman yang sama? Tanyakan jadwal terdekat ke saya." },
+        { id_media: "MED-3", judul: "Manasik bulanan (draf)", jenis: "EVENT", status: "DRAFT", urutan: 3, diubah_oleh: "demo", diubah_pada: "2026-10-21T10:00:00",
+          caption: "Manasik umrah gratis bersama {NAMA_TRAVEL} setiap Ahad pertama. Terbuka untuk calon jamaah dan keluarga." },
+      ],
+      settings: {
+        NAMA_PT: "PT CAHAYA MADINAH SEJAHTERA",
+        NAMA_TRAVEL: "dnzy Umroh ERP",
+        IZIN_PPIU: "PPIU No. U.451 Tahun 2023",
+        ALAMAT_TRAVEL: "Jl. KH. Wahid Hasyim No. 128, Jakarta Pusat",
+        LOGO_URL: "", ICON_AGENT_URL: "", ICON_JAMAAH_URL: "",
+        AGENT_MENU_CONFIG: "",
+        REKENING_BANK: "BANK SYARIAH INDONESIA (BSI)", REKENING_NOMOR: "7123456789", REKENING_NAMA: "PT CAHAYA MADINAH SEJAHTERA",
+      },
+    };
+  }
+
+  // GTM demo_feature_used (17 Okt 2026): fitur kunci yang dicoba di demo - tanpa data pribadi (hanya app + nama fitur)
+  function trackDemo(app, feature) {
+    if (DEMO_UJI) return; // mode uji: tidak mengotori analitik demo
+    if (window.kuTrack) window.kuTrack("demo_feature_used", { app: app, feature_name: feature });
+  }
+  function demoFeature(app, method, seg, route) {
+    if (seg[0] === "jadwal" && seg[2] === "manifest" && seg[3] === "siskopatuh") return "manifest_siskopatuh";
+    if (route === "brosur/generate" || (route === "agent/brosur" && method === "POST")) return "brosur_generator";
+    if (route === "ocr/ktp" || route === "ocr/paspor") return "ocr_simulasi";
+    if (route === "ocr/mrz" || route === "ocr/ktp-teks") return "ocr_perangkat";
+    if (route === "agent/booking" && method === "POST") return "one_stop_booking";
+    if ((seg[0] === "agen" && seg[2] === "cairkan") || route === "agent/komisi/cair") return "komisi_cair";
+    return null;
+  }
+  const demoApp = () => ({ erp: "erp", agent: "agent", jamaah: "jamaah" }[location.pathname.split("/")[1]] || "gerbang");
+
+  window.KU_demoReset = function () {
+    _sDel(DB_KEY);
+    trackDemo(demoApp(), "reset_demo");
+    setTimeout(() => location.reload(), 300); // beri waktu tag GA4 terkirim sebelum muat ulang
+  };
+
+  // -------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------
+  const ok = (data, message) => ({ success: true, ...(message ? { message } : {}), data });
+  const fail = (message) => ({ success: false, message });
+  const nextId = (prefix) => prefix + "-" + Date.now();
+  // Isian otomatis Bank Konten (paritas KontenPlaceholder: bawaan DP 5.000.000 & 30 hari; 0 dipakai apa adanya)
+  const demoNilaiPlaceholder = (d) => {
+    const angka = (v, b) => /^\d+$/.test(String(v ?? "")) ? Number(v) : b;
+    return { nama: d.settings.NAMA_TRAVEL || d.settings.NAMA_PT || "travel kami",
+      dp: "Rp " + Intl.NumberFormat("id-ID").format(angka(d.settings.DP_MINIMAL, 5000000)), batas: String(angka(d.settings.BATAS_PELUNASAN_HARI, 30)) };
+  };
+  const demoIsiPlaceholder = (d, teks) => { const n = demoNilaiPlaceholder(d); return String(teks || "").split("{NAMA_TRAVEL}").join(n.nama).split("{DP_MINIMAL}").join(n.dp).split("{BATAS_PELUNASAN}").join(n.batas); };
+  // Perjalanan jamaah demo + status selesai (paritas FeedbackService: berangkat + durasi - 1 < hari ini)
+  const demoPerjalanan = (d, j) => d.peserta.filter((p) => p.jamaah_id === j.id_jamaah).map((p) => {
+    const jd = d.jadwal.find((x) => x.id_jadwal === p.jadwal_id) || {};
+    const kat = d.katalog.find((k) => k.jadwal_id === p.jadwal_id && k.jenis_paket === p.jenis_paket) || d.katalog.find((k) => k.jadwal_id === p.jadwal_id) || {};
+    let pulang = null;
+    if (jd.tgl_keberangkatan && kat.durasi_hari > 0) { const t = new Date(jd.tgl_keberangkatan + "T00:00:00"); t.setDate(t.getDate() + kat.durasi_hari - 1); pulang = t.toISOString().slice(0, 10); }
+    return { jadwal_id: p.jadwal_id, nama_paket: jd.nama_paket, jenis_paket: p.jenis_paket, tgl_pulang: pulang, selesai: !!pulang && pulang < daysAgo(0) };
+  });
+  // Nomor WA admin travel untuk tombol kontak portal (paritas SummaryController::waAdmin; isi lewat Pengaturan ERP demo)
+  const waAdmin = (d) => { const n = String(d.settings.ADMIN_PHONE || "").replace(/\D/g, "").replace(/^0/, "62").replace(/^8/, "628"); return /^62\d{8,13}$/.test(n) ? n : null; };
+  const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+
+  // -- Katalog Hotel (B-31, 24 Okt 2026): paritas HotelController, HotelInfo, KatalogController::hotelDipilih --
+  const HOTEL_KOTA = ["MAKKAH", "MADINAH"];
+  const hotelNamaKota = (kota) => ({ MAKKAH: "Makkah", MADINAH: "Madinah" }[kota] || (kota ? kota.charAt(0) + kota.slice(1).toLowerCase() : ""));
+  const hotelBool = (v) => typeof v === "boolean" ? v : ["1", "t", "true", "on", "yes", "ya"].includes(String(v ?? "").trim().toLowerCase());
+  const hotelDipakai = (d, id) => d.katalog.filter((k) => k.hotel_mekkah_id === id || k.hotel_madinah_id === id).length;
+  const hotelInfo = (h) => ({ id_hotel: h.id_hotel, nama: h.nama, kota: h.kota, bintang: h.bintang ?? null, jarak_meter: h.jarak_meter ?? null, foto_url: h.foto_url || null });
+  const hotelBaris = (d, h) => ({ ...hotelInfo(h), status_aktif: !!h.status_aktif, dipakai: hotelDipakai(d, h.id_hotel) });
+  // Info hotel satu kolom katalog; baris lama tanpa id hanya punya nama; tanpa hotel -> null
+  const hotelInfoKolom = (d, id, teks, kota) => {
+    const h = id ? (d.katalog_hotel || []).find((x) => x.id_hotel === id) : null;
+    if (h) return hotelInfo(h);
+    const t = String(teks ?? "").trim();
+    return t ? { id_hotel: null, nama: t, kota, bintang: null, jarak_meter: null, foto_url: null } : null;
+  };
+  const hotelPasangan = (d, k) => ({
+    hotel_mekkah: hotelInfoKolom(d, k.hotel_mekkah_id, k.hotel_mekkah, "MAKKAH"),
+    hotel_madinah: hotelInfoKolom(d, k.hotel_madinah_id, k.hotel_madinah, "MADINAH"),
+    hotel_setaraf: hotelBool(k.hotel_setaraf ?? false),
+  });
+  // Bilangan bulat dari input: null bila kosong, false bila bukan bilangan bulat (HotelController::angka)
+  const hotelAngka = (v) => {
+    if (v === null || v === undefined || (typeof v === "string" && v.trim() === "")) return null;
+    if (typeof v === "number") return Number.isInteger(v) ? v : false;
+    if (typeof v === "string" && /^\d{1,9}$/.test(v.trim())) return Number(v.trim());
+    return false;
+  };
+  // [data, pesan galat | null]; field yang tidak dikirim dipertahankan dari baris lama (HotelController::validasi)
+  function hotelValidasi(body, lama) {
+    const ada = (k) => Object.prototype.hasOwnProperty.call(body, k);
+    const teks = (v) => (typeof v === "string" || typeof v === "number" ? String(v) : "");
+    const nama = (ada("nama") ? teks(body.nama) : String(lama?.nama ?? "")).replace(/[\x00-\x1F\x7F]/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
+    const kota = ada("kota") ? teks(body.kota).trim().toUpperCase() : String(lama?.kota ?? "");
+    const data = { nama, kota, bintang: lama && lama.bintang != null ? Number(lama.bintang) : null,
+      jarak_meter: lama && lama.jarak_meter != null ? Number(lama.jarak_meter) : null, status_aktif: !lama || !!lama.status_aktif };
+    if (nama === "") return [data, "Nama hotel wajib diisi."];
+    if ([...nama].length < 2 || [...nama].length > 150) return [data, "Nama hotel antara 2 sampai 150 karakter."];
+    if (!HOTEL_KOTA.includes(kota) && !(lama && kota === lama.kota)) return [data, "Pilih kota hotel: Makkah atau Madinah."];
+    if (ada("bintang")) {
+      const b = hotelAngka(body.bintang);
+      if (b === false || (b !== null && (b < 1 || b > 5))) return [data, "Bintang hotel antara 1 sampai 5, atau dikosongkan."];
+      data.bintang = b;
+    }
+    if (ada("jarak_meter")) {
+      const j = hotelAngka(body.jarak_meter);
+      if (j === false || (j !== null && (j < 0 || j > 50000))) return [data, "Jarak ke masjid diisi dalam meter, antara 0 sampai 50.000, atau dikosongkan."];
+      data.jarak_meter = j;
+    }
+    if (lama && ada("status_aktif")) {
+      const s = typeof body.status_aktif === "boolean" ? body.status_aktif : String(body.status_aktif ?? "").trim().toLowerCase();
+      const status = typeof s === "boolean" ? s : ["1", "true", "on", "yes"].includes(s) ? true : ["0", "false", "off", "no", ""].includes(s) ? false : null;
+      if (status === null) return [data, "Status hotel tidak valid."];
+      data.status_aktif = status;
+    }
+    return [data, null];
+  }
+  const hotelNamaGanda = (kota) => `Hotel dengan nama ini sudah ada di ${hotelNamaKota(kota)}.`;
+  const hotelNamaDipakai = (d, nama, kota, kecuali) => d.katalog_hotel.some((h) => h.kota === kota && h.nama.toLowerCase() === nama.toLowerCase() && h.id_hotel !== (kecuali || ""));
+  // Hotel pilihan kolom Makkah/Madinah katalog: harus ada, kotanya cocok, dan aktif kecuali sudah terpasang di baris itu
+  function hotelDipilih(d, id, kolom, terpasang) {
+    const s = typeof id === "string" || typeof id === "number" ? String(id).trim() : "";
+    if (s === "") return [null, null];
+    const kota = kolom === "hotel_mekkah" ? "MAKKAH" : "MADINAH", namaKota = hotelNamaKota(kota);
+    const h = d.katalog_hotel.find((x) => x.id_hotel === s);
+    if (!h) return [null, `Hotel ${namaKota} yang dipilih tidak ada di Katalog Hotel. Muat ulang halaman lalu pilih lagi.`];
+    if (h.kota !== kota) return [null, `${h.nama} bukan hotel di ${namaKota}. Pilih hotel ${namaKota}.`];
+    if (!h.status_aktif && s !== String(terpasang ?? "").trim()) return [null, `${h.nama} sedang nonaktif. Pilih hotel lain atau aktifkan dulu di Katalog Hotel.`];
+    return [h, null];
+  }
+  // Item GET /katalog: id hotel (string|null), hotel_setaraf, objek info hotel (KatalogController::denganHotel)
+  const katalogTampil = (d, k) => {
+    const jd = d.jadwal.find((j) => j.id_jadwal === k.jadwal_id) || {};
+    const p = hotelPasangan(d, k);
+    return { ...k, nama_paket: jd.nama_paket ?? k.nama_paket, tgl_keberangkatan: jd.tgl_keberangkatan ?? null,
+      hotel_mekkah_id: k.hotel_mekkah_id || null, hotel_madinah_id: k.hotel_madinah_id || null, hotel_setaraf: p.hotel_setaraf,
+      hotel_mekkah_info: p.hotel_mekkah, hotel_madinah_info: p.hotel_madinah,
+      link_brosur: k.link_brosur || null, brosur_area: k.brosur_area ?? null,
+      link_brosur_jadwal: jd.link_brosur || null, brosur_area_jadwal: jd.brosur_area ?? null };
+  };
+  // Varian per jadwal urut harga naik. Portal Agen (SummaryController::agent) + maskapai/durasi; publik (PublicJadwal) tanpa
+  // -------------------------------------------------------------
+  // Komisi tier per entitas (paritas TierKomisi tenant-app, keputusan PO 26 Okt 2026)
+  // -------------------------------------------------------------
+  const DEMO_JENIS_PAKET = ["Ekonomis", "Spesial", "Spesial *4", "VIP *4/*5", "VVIP *5"];
+  const demoRoleLama = (u) => (u <= 1 ? "DCM" : u === 2 ? "SCM" : "UCM");
+  const demoTiers = (d, ent) => (d.tier_agen || []).filter((t) => t.id_entitas === ent).sort((a, b) => a.urutan - b.urutan || a.id - b.id);
+  const demoTier = (d, id) => (d.tier_agen || []).find((t) => t.id === Number(id)) || null;
+  const demoNominalTier = (t, jenis) => (t ? (jenis in (t.penimpa || {}) ? t.penimpa[jenis] : t.nominal_bawaan) : null);
+  function demoTierBawaan(d, ent) {
+    let id = Math.max(0, ...(d.tier_agen || []).map((t) => t.id));
+    [1, 2, 3].forEach((u) => d.tier_agen.push({ id: ++id, id_entitas: ent, nama: `Tier ${u}`, urutan: u, nominal_bawaan: null, aktif: true, penimpa: {} }));
+  }
+  // Margin standar terkecil per jenis paket (Katalog Harga) + jenis lama yang masih dipakai penimpa
+  function demoJenisPaket(d) {
+    const out = {};
+    DEMO_JENIS_PAKET.forEach((j) => { out[j] = null; });
+    d.katalog.forEach((k) => {
+      const m = (Number(k.harga_jual_std) || 0) - (Number(k.harga_setor_std) || 0);
+      out[k.jenis_paket] = out[k.jenis_paket] === null || out[k.jenis_paket] === undefined ? m : Math.min(out[k.jenis_paket], m);
+    });
+    (d.tier_agen || []).forEach((t) => Object.keys(t.penimpa || {}).forEach((j) => { if (!(j in out)) out[j] = null; }));
+    Object.values(d.komisi_cabang_jenis || {}).forEach((m) => Object.keys(m).forEach((j) => { if (!(j in out)) out[j] = null; }));
+    return out;
+  }
+  // Alur T7: komisi tier cabang yang melebihi batas baru (bawaan dan/atau per jenis paket)
+  function demoMelebihiBatas(d, ent, bawaanBaru, perJenisBaru) {
+    const en = d.entitas.find((e) => e.id === ent);
+    if (!en || en.tipe_entitas !== "CABANG") return [];
+    const bawaan = bawaanBaru ?? (Number(en.komisi_cabang) || 0);
+    const perJenis = { ...((d.komisi_cabang_jenis || {})[ent] || {}) };
+    Object.entries(perJenisBaru || {}).forEach(([j, n]) => { if (n === null) delete perJenis[j]; else perJenis[j] = n; });
+    const batas = (j) => (j !== null && j in perJenis ? perJenis[j] : bawaan);
+    const konflik = [];
+    demoTiers(d, ent).filter((t) => t.aktif).forEach((t) => {
+      if (t.nominal_bawaan !== null) {
+        [...Object.keys(perJenis), null].filter((j) => j === null || !(j in (t.penimpa || {}))).forEach((j) => {
+          if (t.nominal_bawaan > batas(j)) konflik.push({ id_tier: t.id, tier: t.nama, jenis_paket: j, nominal: t.nominal_bawaan, batas: batas(j) });
+        });
+      }
+      Object.entries(t.penimpa || {}).forEach(([j, n]) => { if (n > batas(j)) konflik.push({ id_tier: t.id, tier: t.nama, jenis_paket: j, nominal: n, batas: batas(j) }); });
+    });
+    return konflik;
+  }
+  function demoTurunkan(d, konflik) {
+    konflik.forEach((k) => {
+      const t = demoTier(d, k.id_tier);
+      if (!t) return;
+      if (k.jenis_paket === null) t.nominal_bawaan = Math.min(t.nominal_bawaan, k.batas);
+      else t.penimpa[k.jenis_paket] = Math.min(t.penimpa[k.jenis_paket] ?? Infinity, k.batas);
+    });
+  }
+  const demoTolakKonflik = (konflik) => ({ success: false, _http: 409, data: { konflik },
+    message: "Batas baru lebih kecil dari komisi tier cabang. Turunkan komisi tier itu lebih dulu, atau pilih \"Turunkan tier ke batas baru\"." });
+  const demoAgenRow = (d, a) => {
+    const t = demoTier(d, a.id_tier);
+    return { ...a, id_entitas: a.id_entitas || "PST-01", nama_tier: t ? t.nama : null, urutan_tier: t ? t.urutan : null,
+      upline_nama: (d.agen.find((x) => x.id_agen === a.id_upline) || {}).nama || null,
+      jamaah_count: d.peserta.filter((p) => p.id_agen_closing === a.id_agen).length };
+  };
+  const demoKomisiAgen = (d, a) => { const t = demoTier(d, a?.id_tier); return t ? { nama: t.nama, bawaan: t.nominal_bawaan, penimpa: { ...t.penimpa } } : null; };
+
+  const demoVarian = (d, jadwalId, agen) => d.katalog.filter((k) => k.jadwal_id === jadwalId)
+    .sort((a, b) => (Number(a.harga_jual_std) || 0) - (Number(b.harga_jual_std) || 0))
+    .map((k) => ({ jenis_paket: k.jenis_paket, harga: Number(k.harga_jual_std) || 0,
+      ...(agen ? { maskapai: k.maskapai ?? null, durasi: k.durasi_hari ?? null } : {}), ...hotelPasangan(d, k),
+      ...(agen ? { komisi_anda: demoNominalTier(demoTier(d, (d.agen[0] || {}).id_tier), k.jenis_paket) } : {}),
+      ...(agen ? { ada_brosur: !!(k.link_brosur || (d.jadwal.find((j) => j.id_jadwal === jadwalId) || {}).link_brosur) } : {}) }));
+
+  // -------------------------------------------------------------
+  // Brosur (25 Okt 2026): kanvas paritas BrosurRenderer tenant-app. Pita hitam 19% lebar brosur atau area kosong bawaan,
+  // geometri GAS (area 1080 x 205: foto 3x4 berbingkai emas, "Info & Pendaftaran: NAMA", nomor HP, wilayah).
+  // Font = TTF yang sama dengan server (/assets/fonts), jadi hasil demo sama dengan aplikasi travel.
+  // -------------------------------------------------------------
+  const BROSUR_FONT = { judul: "KUBrosurFraunces", hp: "KUBrosurJakartaBold", wilayah: "KUBrosurJakarta" };
+  let brosurFontSiap = null;
+  const demoBrosurFont = () => brosurFontSiap || (brosurFontSiap = Promise.all([
+    [BROSUR_FONT.judul, "Fraunces-SemiBold.ttf"], [BROSUR_FONT.hp, "PlusJakartaSans-Bold.ttf"], [BROSUR_FONT.wilayah, "PlusJakartaSans-Regular.ttf"],
+  ].map(([nama, berkas]) => new FontFace(nama, `url(/assets/fonts/${berkas})`).load().then((f) => document.fonts.add(f)))).catch(() => null));
+  const demoGambar = (src) => new Promise((selesai, gagal) => { const i = new Image(); i.onload = () => selesai(i); i.onerror = gagal; i.src = src; });
+  const demoFormatHp = (hp) => { const n = String(hp || "").replace(/\D/g, "").replace(/^(62|0)/, ""); return n ? "0" + n : ""; };
+
+  async function demoBrosurRender(src, kontak, area, foto) {
+    await demoBrosurFont();
+    const img = await demoGambar(src);
+    let w = img.naturalWidth, h = img.naturalHeight;
+    if (w > 2160) { h = Math.round(h * 2160 / w); w = 2160; }
+    const pita = area == null ? Math.round(w * 0.19) : 0;
+    const cv = document.createElement("canvas");
+    cv.width = w; cv.height = h + pita;
+    const c = cv.getContext("2d");
+    c.fillStyle = "#fff"; c.fillRect(0, 0, w, h);
+    c.drawImage(img, 0, 0, w, h);
+    let kotak, terang = false;
+    if (area == null) {
+      const garis = Math.max(2, Math.round(w / 540));
+      c.fillStyle = "#000"; c.fillRect(0, h, w, pita);
+      c.fillStyle = "rgba(234,194,84,0.69)"; c.fillRect(0, h, w, garis);
+      kotak = [0, h + garis, w, pita - garis];
+    } else {
+      const ta = Math.round(h * area / 1000);
+      kotak = [0, h - ta, w, ta];
+      const px = c.getImageData(0, h - ta, w, ta).data;
+      let jumlah = 0, n = 0;
+      for (let i = 0; i < px.length; i += 64) { jumlah += 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]; n++; }
+      terang = jumlah / Math.max(1, n) / 255 > 0.62;
+    }
+    const bayangan = area != null && !terang; // teks putih di atas desain: bayangan agar tetap terbaca
+    const [x0, y0, lebar, tinggi] = kotak;
+    const s = Math.min(tinggi / 205, lebar / 1080);
+    const bawah = y0 + (tinggi - 205 * s) / 2 + 205 * s;
+    const emas = terang ? "rgb(138,106,18)" : "rgb(234,194,84)";
+    const warnaHp = terang ? "rgb(17,17,17)" : "#fff";
+    const nama = String(kontak.nama || "").trim().toUpperCase() || "AGEN RESMI";
+    const wilayah = String(kontak.wilayah || "").trim().toUpperCase();
+    const hp = demoFormatHp(kontak.hp) || "Hubungi Kami";
+    const baris = wilayah
+      ? [[BROSUR_FONT.judul, 32, 135, "Info & Pendaftaran: " + nama, emas], [BROSUR_FONT.hp, 46, 80, hp, warnaHp],
+         [BROSUR_FONT.wilayah, 22, 40, wilayah, terang ? "rgb(51,51,51)" : "rgba(255,255,255,0.85)"]]
+      : [[BROSUR_FONT.judul, 35, 110, "Info & Pendaftaran: " + nama, emas], [BROSUR_FONT.hp, 55, 50, hp, warnaHp]];
+
+    const fotoImg = foto === "contoh" ? demoSiluet(terang) : foto ? await demoGambar(foto).catch(() => null) : null;
+    let teksX, maks, tengah;
+    if (fotoImg) {
+      const fx = Math.round(x0 + 45 * s), fy = Math.round(bawah - 185 * s), fw = Math.round(120 * s), fh = Math.round(160 * s);
+      const b = Math.max(2, Math.round(4 * s));
+      c.fillStyle = emas; c.fillRect(fx - b, fy - b, fw + 2 * b, fh + 2 * b);
+      const sw = fotoImg.naturalWidth || fotoImg.width, sh = fotoImg.naturalHeight || fotoImg.height;
+      const cw = Math.min(sw, Math.round(sh * 3 / 4)), ch = Math.round(cw * 4 / 3);
+      c.drawImage(fotoImg, (sw - cw) / 2, (sh - ch) / 2, cw, ch, fx, fy, fw, fh);
+      teksX = x0 + 200 * s; maks = lebar - 245 * s; tengah = false;
+    } else {
+      teksX = x0 + lebar / 2; maks = lebar - 90 * s; tengah = true;
+    }
+    for (const [font, px, dariBawah, isi, warna] of baris) {
+      let ukuran = px * s, teks = isi;
+      c.font = `${ukuran}px ${font}`;
+      let lw = c.measureText(teks).width;
+      if (lw > maks) { ukuran = Math.max(ukuran * 0.55, ukuran * maks / lw); c.font = `${ukuran}px ${font}`; lw = c.measureText(teks).width; }
+      while (lw > maks && teks.length > 4) { teks = teks.slice(0, -4).trimEnd() + "..."; lw = c.measureText(teks).width; }
+      const x = Math.round(tengah ? teksX - lw / 2 : teksX), y = Math.round(bawah - dariBawah * s);
+      if (bayangan) { const o = Math.max(1, Math.round(2 * s)); c.fillStyle = "rgba(0,0,0,0.69)"; c.fillText(teks, x + o, y + o); }
+      c.fillStyle = warna; c.fillText(teks, x, y);
+    }
+    return new Promise((r) => cv.toBlob(r, "image/jpeg", 0.9));
+  }
+  function demoSiluet(terang) {
+    const cv = document.createElement("canvas");
+    cv.width = 120; cv.height = 160;
+    const c = cv.getContext("2d");
+    c.fillStyle = terang ? "#d6d6d6" : "#3a3a3a"; c.fillRect(0, 0, 120, 160);
+    c.fillStyle = terang ? "#a0a0a0" : "#6e6e6e";
+    c.beginPath(); c.ellipse(60, 60, 26, 30, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(60, 160, 55, 45, 0, 0, Math.PI * 2); c.fill();
+    return cv;
+  }
+  // Berkas unggahan -> data URL JPEG (lebar <= lebarMaks; rasio34 = potong pas foto 3:4) + ukuran asli
+  async function demoSimpanGambar(file, lebarMaks, rasio34) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await demoGambar(url);
+      let sw = img.naturalWidth, sh = img.naturalHeight, sx = 0, sy = 0;
+      if (rasio34) { const cw = Math.min(sw, Math.round(sh * 3 / 4)), ch = Math.round(cw * 4 / 3); sx = (sw - cw) / 2; sy = (sh - ch) / 2; sw = cw; sh = ch; }
+      const skala = Math.min(1, lebarMaks / sw);
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(sw * skala); cv.height = Math.round(sh * skala);
+      cv.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+      return { dataUrl: cv.toDataURL("image/jpeg", 0.85), lebar: img.naturalWidth, tinggi: img.naturalHeight };
+    } finally { URL.revokeObjectURL(url); }
+  }
+  const demoFotoAgen = async (blob) => { try { return (await demoSimpanGambar(blob, 360, true)).dataUrl; } catch (e) { return ""; } };
+  const demoJpeg = (blob) => new Response(blob, { status: 200, headers: { "Content-Type": "image/jpeg" } });
+  const demoGagalRaw = (status, message) => new Response(JSON.stringify(fail(message)), { status, headers: { "Content-Type": "application/json" } });
+  const demoAreaBrosur = (v) => (v === "" || v == null ? null : Number(v));
+  const demoAreaSalah = (a) => a !== null && !(a >= 50 && a <= 400);
+  // Brosur yang diunduh (paritas BrosurController::sumber): brosur varian, cadangan brosur jadwal; sumber "jadwal" = jadwal saja
+  async function demoBrosurUnduh(d, body, kontak, foto) {
+    const j = d.jadwal.find((x) => x.id_jadwal === body.jadwal_id) || null;
+    const k = body.katalog_id ? d.katalog.find((x) => x.id_katalog === body.katalog_id)
+      : body.sumber === "jadwal" ? null : d.katalog.find((x) => x.jadwal_id === body.jadwal_id && x.jenis_paket === body.jenis_paket);
+    if (!k && (!j || body.sumber !== "jadwal")) return demoGagalRaw(404, "Paket tidak ditemukan.");
+    const induk = k ? d.jadwal.find((x) => x.id_jadwal === k.jadwal_id) || {} : j;
+    const [src, area] = k && k.link_brosur ? [k.link_brosur, k.brosur_area ?? null] : [induk.link_brosur, induk.brosur_area ?? null];
+    if (!src) return demoGagalRaw(422, "Brosur untuk paket ini belum diunggah kantor travel.");
+    try { return demoJpeg(await demoBrosurRender(src, kontak, area, foto)); } catch (e) { return demoGagalRaw(500, "Brosur gagal dibuat di browser demo."); }
+  }
+
+
+
+  // -------------------------------------------------------------
+  // Baca KTP/paspor di perangkat (26 Okt 2026): port setia OcrTeks.php tenant-app. Tesseract berjalan di browser (bundel ERP),
+  // shim ini menggantikan POST /ocr/mrz dan /ocr/ktp-teks. Perubahan di OcrTeks.php wajib disalin ke sini (uji paritas pt/).
+  // -------------------------------------------------------------
+  const OCR_KE_ANGKA = { O: "0", Q: "0", D: "0", I: "1", L: "1", Z: "2", S: "5", B: "8", G: "6" };
+  const OCR_KE_HURUF = { 0: "O", 1: "I", 2: "Z", 5: "S", 8: "B", 6: "G", 4: "A" };
+  const OCR_NIK_ANGKA = { O: "0", o: "0", D: "0", Q: "0", I: "1", l: "1", L: "1", i: "1", "|": "1", "!": "1",
+    Z: "2", z: "2", S: "5", s: "5", B: "8", b: "6", G: "6", g: "9", q: "9", "?": "7" };
+  const OCR_ALT_ANGKA = { B: ["8", "0", "3"], D: ["0"], O: ["0"], Q: ["0"], U: ["0"], C: ["0"], I: ["1"], L: ["1"],
+    T: ["7", "1"], Z: ["2", "7"], S: ["5", "8"], G: ["6", "0"], A: ["4"], E: ["8", "3"],
+    0: ["8", "6", "9"], 8: ["0", "3", "6", "9", "5"], 3: ["8", "5"], 5: ["6", "3", "8"], 6: ["5", "8", "0"],
+    9: ["8", "0"], 1: ["7", "4"], 7: ["1", "2"], 4: ["1", "9"], 2: ["7"] };
+  const OCR_ALT_DOKUMEN = { O: ["0"], 0: ["O"], I: ["1"], 1: ["I"], S: ["5"], 5: ["S"], B: ["8"], 8: ["B"], Z: ["2"], 2: ["Z"], D: ["0"], G: ["6"], 6: ["G"] };
+  const OCR_LABEL_KTP = { NoIdentitas: ["NIK"], Nama: ["NAMA"], TempatTglLahir: ["TEMPATTGLLAHIR", "TEMPATLAHIR", "TTL"], JKelamin: ["JENISKELAMIN"],
+    Alamat: ["ALAMAT"], RtRw: ["RTRW"], Kelurahan: ["KELDESA", "KELURAHAN", "DESA"], Kecamatan: ["KECAMATAN"], Agama: ["AGAMA"],
+    StatusPernikahan: ["STATUSPERKAWINAN"], Pekerjaan: ["PEKERJAAN"], Kewarganegaraan: ["KEWARGANEGARAAN"], BerlakuHingga: ["BERLAKUHINGGA"], GolDarah: ["GOLDARAH"] };
+  const OCR_AGAMA = ["ISLAM", "KRISTEN", "KATOLIK", "HINDU", "BUDDHA", "KONGHUCU"];
+  const OCR_STATUS_KAWIN = ["BELUM KAWIN", "KAWIN", "CERAI HIDUP", "CERAI MATI"];
+  const ocrPeta = (s, peta) => Array.from(s, (c) => peta[c] ?? c).join("");
+  const ocrBaris = (t) => String(t || "").split(/\r\n|\r|\n/);
+  const ocrDigitCek = (s) => Array.from(s).reduce((sum, c, i) => sum + (/\d/.test(c) ? +c : c === "<" ? 0 : c.charCodeAt(0) - 55) * [7, 3, 1][i % 3], 0) % 10;
+  const ocrDigitAt = (s, i) => (/\d/.test(s[i] || "") ? +s[i] : -1);
+  const ocrPad44 = (s) => (s + "<".repeat(44)).slice(0, 44);
+  function ocrCekMrz(l1, l2) {
+    if (l1.length < 44 || l2.length < 44) return { valid: false, detail: "MRZ terlalu pendek (TD3 = 2x44 karakter)." };
+    if (ocrDigitCek(l2.slice(0, 9)) !== ocrDigitAt(l2, 9)) return { valid: false, detail: "Check digit nomor paspor tidak cocok." };
+    if (ocrDigitCek(l2.slice(13, 19)) !== ocrDigitAt(l2, 19)) return { valid: false, detail: "Check digit tanggal lahir tidak cocok." };
+    if (ocrDigitCek(l2.slice(21, 27)) !== ocrDigitAt(l2, 27)) return { valid: false, detail: "Check digit tanggal expiry tidak cocok." };
+    return { valid: true, detail: "Semua check digit cocok (dokumen, lahir, expiry)." };
+  }
+  function ocrCariMrz(teks) {
+    const baris = ocrBaris(String(teks).toUpperCase()).map((b) => b.replace(/[<<(\[{]/g, "<").replace(/[^A-Z0-9<]/g, "")).filter((b) => b.length >= 30);
+    for (let i = baris.length - 1; i >= 1; i--) {
+      if ((baris[i].match(/\d/g) || []).length >= 10 && baris[i - 1].startsWith("P")) return [baris[i - 1], baris[i]];
+    }
+    return [null, null];
+  }
+  function ocrPerbaikiSegmen(c, isi, cd, altIsi, syarat) {
+    const cocok = (x) => /\d/.test(x[cd]) && ocrDigitCek(isi.map((i) => x[i]).join("")) === +x[cd] && (!syarat || syarat(x));
+    if (cocok(c)) return c;
+    const pilihan = [];
+    isi.concat([cd]).forEach((p) => (((p === cd ? OCR_ALT_ANGKA : altIsi)[c[p]]) || []).forEach((alt) => pilihan.push([p, alt])));
+    const satu = [];
+    pilihan.forEach(([p, alt]) => { const x = c.slice(); x[p] = alt; if (cocok(x)) satu.push(x); });
+    if (satu.length === 1) return satu[0];
+    if (satu.length) return c;
+    const dua = new Map();
+    pilihan.forEach(([p, alt], i) => pilihan.slice(i + 1).forEach(([q, alt2]) => {
+      if (p === q) return;
+      const x = c.slice(); x[p] = alt; x[q] = alt2;
+      if (cocok(x)) dua.set(x.join(""), x);
+    }));
+    return dua.size === 1 ? [...dua.values()][0] : c;
+  }
+  function ocrPerbaikiBaris2(mentah) {
+    let c = Array.from(mentah);
+    [9, ...Array.from({ length: 7 }, (_, i) => 13 + i), ...Array.from({ length: 7 }, (_, i) => 21 + i), 42, 43].forEach((i) => { c[i] = OCR_KE_ANGKA[c[i]] ?? c[i]; });
+    [10, 11, 12].forEach((i) => { c[i] = OCR_KE_HURUF[c[i]] ?? c[i]; });
+    c[20] = { H: "M", N: "M", E: "F" }[c[20]] ?? c[20];
+    const tanggal = (x, a) => +(x[a + 2] + x[a + 3]) >= 1 && +(x[a + 2] + x[a + 3]) <= 12 && +(x[a + 4] + x[a + 5]) >= 1 && +(x[a + 4] + x[a + 5]) <= 31;
+    const rentang = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+    c = ocrPerbaikiSegmen(c, rentang(0, 8), 9, OCR_ALT_DOKUMEN, null);
+    c = ocrPerbaikiSegmen(c, rentang(13, 18), 19, OCR_ALT_ANGKA, (x) => tanggal(x, 13));
+    c = ocrPerbaikiSegmen(c, rentang(21, 26), 27, OCR_ALT_ANGKA, (x) => tanggal(x, 21));
+    c = ocrPerbaikiSegmen(c, rentang(28, 41), 42, {}, null);
+    return ocrPerbaikiSegmen(c, [...rentang(0, 9), ...rentang(13, 19), ...rentang(21, 42)], 43, {}, null).join("");
+  }
+  const ocrSkorBaris2 = (l2) => [[0, 9, 9], [13, 6, 19], [21, 6, 27]].reduce((s, [a, n, d]) => s + (ocrDigitCek(l2.slice(a, a + n)) === ocrDigitAt(l2, d) ? 1 : 0), 0);
+  function ocrRapikanMrz(l1, l2) {
+    l1 = ocrPad44(l1);
+    const kandidat = [];
+    for (let o = 0; o <= Math.max(0, l2.length - 44); o++) kandidat.push(ocrPerbaikiBaris2(ocrPad44(l2.slice(o))));
+    kandidat.sort((a, b) => ocrSkorBaris2(b) - ocrSkorBaris2(a));
+    const bersih = [];
+    for (const token of ocrPeta(l1.slice(5), OCR_KE_HURUF).split("<")) { if (/^[KLCE]{3,}$/.test(token)) break; bersih.push(token); }
+    return [ocrPad44(l1.slice(0, 2) + ocrPeta(l1.slice(2, 5), OCR_KE_HURUF) + bersih.join("<").replace(/<+$/, "")), kandidat[0]];
+  }
+  function ocrTanggalMrz(s, kedaluwarsa) {
+    const m = /^(\d{2})(\d{2})(\d{2})$/.exec(s);
+    if (!m || +m[2] < 1 || +m[2] > 12 || +m[3] < 1 || +m[3] > 31) return "";
+    const tahun = kedaluwarsa ? 2000 + +m[1] : (+m[1] > new Date().getFullYear() % 100 ? 1900 : 2000) + +m[1];
+    return `${m[3]}-${m[2]}-${tahun}`;
+  }
+  const ocrTanpaKosong = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== ""));
+  function demoOcrPaspor(teks) {
+    let [l1, l2] = ocrCariMrz(teks);
+    if (l1 === null || l2 === null) {
+      return { fields: {}, mrz: { valid: false, detail: "Dua baris MRZ tidak ditemukan." },
+        warnings: ["Dua baris kode di bagian bawah halaman biodata (MRZ) tidak terbaca. Foto halaman biodata lurus, terang, dan tanpa pantulan, lalu coba lagi."] };
+    }
+    [l1, l2] = ocrRapikanMrz(l1, l2);
+    const mrz = ocrCekMrz(l1, l2);
+    const namaPart = l1.slice(5), pisah = namaPart.indexOf("<<");
+    const belakang = (pisah < 0 ? namaPart : namaPart.slice(0, pisah)).replace(/</g, " ").trim();
+    const depan = (pisah < 0 ? "" : namaPart.slice(pisah + 2)).replace(/</g, " ").trim();
+    const jk = l2[20];
+    const fields = ocrTanpaKosong({
+      NamaPaspor: (depan + " " + belakang).replace(/\s+/g, " ").trim(), NoPaspor: l2.slice(0, 9).replace(/<+$/, ""),
+      Kewarganegaraan: l2.slice(10, 13).replace(/<+$/, ""), TglLahir: ocrTanggalMrz(l2.slice(13, 19), false),
+      JKelamin: jk === "M" ? "L" : jk === "F" ? "P" : "", TglExpiry: ocrTanggalMrz(l2.slice(21, 27), true),
+      Jenis: l1.slice(0, 2).replace(/<+$/, ""), KodeNegara: l1.slice(2, 5).replace(/<+$/, ""), MRZLine1: l1, MRZLine2: l2,
+    });
+    const warnings = [];
+    if (!mrz.valid) warnings.push("MRZ perlu diperiksa: " + mrz.detail + " Bandingkan dengan paspor asli.");
+    [["TglLahir", "Tanggal lahir"], ["TglExpiry", "Tanggal habis berlaku"]].forEach(([k, label]) => { if (!(k in fields)) warnings.push(`${label} tidak terbaca.`); });
+    if (fields.TglExpiry) {
+      const [d, m, y] = fields.TglExpiry.split("-").map(Number), batas = new Date();
+      batas.setMonth(batas.getMonth() + 6);
+      if (new Date(y, m - 1, d) < batas) warnings.push("Perhatian: masa berlaku paspor kurang dari 6 bulan dari sekarang.");
+    }
+    return { fields, mrz, warnings };
+  }
+  function ocrLevenshtein(a, b) {
+    const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+    for (let j = 1; j <= b.length; j++) d[0][j] = j;
+    for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    return d[a.length][b.length];
+  }
+  const ocrRapikan = (s) => String(s).replace(/^[\s.,:;=_|~\---]+|[\s,:;=_|~\---]+$/gu, "").toUpperCase().replace(/\s+/g, " ").trim();
+  function ocrCocokLabel(teks) {
+    const huruf = ocrPeta(String(teks).toUpperCase(), { 1: "I", 0: "O", "|": "I" }).replace(/[^A-Z]/g, "").replace(/RN/g, "M");
+    if (!huruf || huruf.length > 20) return null;
+    let terbaik = null, jarak = Infinity;
+    for (const [kunci, daftar] of Object.entries(OCR_LABEL_KTP)) {
+      for (const l of daftar) {
+        const dist = ocrLevenshtein(huruf, l.replace(/RN/g, "M")), batas = l.length <= 4 ? 1 : l.length <= 8 ? 2 : 3;
+        if (dist <= batas && dist < jarak) { terbaik = kunci; jarak = dist; }
+      }
+    }
+    return terbaik;
+  }
+  function ocrLabelKtp(baris) {
+    const i = baris.indexOf(":");
+    if (i < 0) {
+      const kata = baris.split(" ");
+      for (const n of [3, 2, 1]) {
+        if (kata.length > n && ocrCocokLabel(kata.slice(0, n).join(" ")) !== null) return [ocrCocokLabel(kata.slice(0, n).join(" ")), kata.slice(n).join(" ").trim()];
+      }
+      return [null, ""];
+    }
+    const kunci = ocrCocokLabel(baris.slice(0, i));
+    return kunci === null ? [null, ""] : [kunci, baris.slice(i + 1).replace(/^[ \t.\-:=]+|[ \t.\-:=]+$/g, "")];
+  }
+  const ocrNik = (teks) => { const m = /\d{16}/.exec(ocrPeta(String(teks), OCR_NIK_ANGKA).replace(/\s+/g, "")); return m ? m[0] : ""; };
+  function ocrTempatTanggal(nilai) {
+    const angka = ocrPeta(nilai, { O: "0", o: "0", I: "1", l: "1", S: "5", B: "8" });
+    const m = /(\d{1,2})\s*[-\/.]\s*(\d{1,2})\s*[-\/.]\s*(\d{4})/.exec(angka);
+    if (!m) return [ocrRapikan(nilai.replace(/[ ,]+$/, "")), ""];
+    const tempat = ocrRapikan(nilai.slice(0, m.index).replace(/[ ,.\-]+$/, ""));
+    const d = +m[1], b = +m[2];
+    return [tempat, d >= 1 && d <= 31 && b >= 1 && b <= 12 ? `${String(d).padStart(2, "0")}-${String(b).padStart(2, "0")}-${m[3]}` : ""];
+  }
+  function ocrTerdekat(nilai, pilihan) {
+    const n = ocrRapikan(nilai);
+    for (const p of pilihan.slice().sort((a, b) => b.length - a.length)) if (n === p || n.startsWith(p + " ")) return p;
+    let terbaik = null, jarak = 3;
+    for (const p of pilihan) { const d = ocrLevenshtein(n, p); if (d < jarak) { terbaik = p; jarak = d; } }
+    return terbaik;
+  }
+  function demoOcrKtp(teks) {
+    let f = {}, label = null;
+    for (const mentah of ocrBaris(teks)) {
+      const baris = mentah.replace(/\s+/g, " ").trim();
+      if (!baris) continue;
+      const besar = baris.toUpperCase();
+      let m;
+      if ((m = /^PR[O0]V[I1L]NS[I1L]\s+(.+)$/.exec(besar))) { f.Provinsi = ocrRapikan(m[1]); label = null; continue; }
+      if ((m = /^(KABUPATEN|KOTA|KAB\.)\s+(.+)$/.exec(besar))) { f.Kabupaten = ocrRapikan((m[1] === "KAB." ? "KABUPATEN" : m[1]) + " " + m[2]); label = null; continue; }
+      const [kunci, nilai] = ocrLabelKtp(baris);
+      if (kunci === null) {
+        if (label === "Alamat" && "Alamat" in f && !/\d{12,}/.test(baris)) f.Alamat += " " + ocrRapikan(baris);
+        if (!("NoIdentitas" in f)) { const nik = ocrNik(baris); if (nik) f.NoIdentitas = nik; }
+        continue;
+      }
+      label = kunci;
+      if (nilai === "") continue;
+      if (kunci === "NoIdentitas") f.NoIdentitas = ocrNik(nilai) || ocrNik(baris);
+      else if (kunci === "TempatTglLahir") { const [tempat, tgl] = ocrTempatTanggal(nilai); if (tempat) f.TempatLahir = tempat; if (tgl) f.TglLahir = tgl; }
+      else if (kunci === "JKelamin") { const jk = (nilai.split(/G[O0]L/i)[0] || "").toUpperCase(); f.JKelamin = jk.includes("LAK") ? "L" : jk.includes("PEREM") || jk.includes("WANITA") ? "P" : ""; }
+      else if (kunci === "Agama") f.Agama = ocrTerdekat(nilai, OCR_AGAMA) ?? ocrRapikan(nilai);
+      else if (kunci === "StatusPernikahan") f.StatusPernikahan = ocrTerdekat(nilai, OCR_STATUS_KAWIN) ?? ocrRapikan(nilai);
+      else if (kunci === "Kewarganegaraan") f.Kewarganegaraan = nilai.toUpperCase().includes("WNA") ? "WNA" : /W\s*N/i.test(nilai) ? "WNI" : ocrRapikan(nilai);
+      else if (kunci === "RtRw") { const r = /(\d{1,3})\D+(\d{1,3})/.exec(ocrPeta(nilai, OCR_NIK_ANGKA)); f.RtRw = r ? `${r[1].padStart(3, "0")}/${r[2].padStart(3, "0")}` : ocrRapikan(nilai); }
+      else if (kunci !== "BerlakuHingga" && kunci !== "GolDarah") f[kunci] = ocrRapikan(nilai.replace(/\s+\d{2}-\d{2}-\d{4}\s*$/, ""));
+    }
+    f = ocrTanpaKosong(f);
+    const warnings = [];
+    const nikSah = /^\d{16}$/.test(f.NoIdentitas || "");
+    if (!nikSah) warnings.push("NIK tidak terbaca sebagai 16 digit. Periksa dengan KTP asli.");
+    if (!("Nama" in f)) warnings.push("Nama tidak terbaca.");
+    if (nikSah) {
+      const dd = +f.NoIdentitas.slice(6, 8), jkNik = dd > 40 ? "P" : "L";
+      const tglNik = `${String(dd > 40 ? dd - 40 : dd).padStart(2, "0")}-${f.NoIdentitas.slice(8, 10)}`;
+      if (!f.JKelamin) { f.JKelamin = jkNik; warnings.push("Jenis kelamin diambil dari NIK."); }
+      else if (f.JKelamin !== jkNik) warnings.push("Jenis kelamin tidak cocok dengan NIK. Salah satunya mungkin salah baca.");
+      if (f.TglLahir && (f.TglLahir.slice(0, 5) !== tglNik || f.TglLahir.slice(-2) !== f.NoIdentitas.slice(10, 12))) {
+        warnings.push("Tanggal lahir tidak cocok dengan NIK. Salah satunya mungkin salah baca.");
+      }
+    }
+    return { fields: f, warnings };
+  }
+
+  function token(app) { return _sGet(TOKEN_KEYS[app] || TOKEN_KEYS.erp) || ""; }
+  function setToken(app, t) { _sSet(TOKEN_KEYS[app] || TOKEN_KEYS.erp, t); }
+  function clearToken(app) { _sDel(TOKEN_KEYS[app] || TOKEN_KEYS.erp); }
+
+  // -------------------------------------------------------------
+  // Router - request(app, method, path, body, opts)
+  // -------------------------------------------------------------
+  async function request(app, method, path, body, opts = {}) {
+    await new Promise((r) => setTimeout(r, 120)); // simulasikan latency realistis
+    const d = db();
+    const seg = path.split("?")[0].split("/").filter(Boolean); // ["jamaah", "JMH-1001", ...]
+    const route = seg.join("/");
+    const feature = demoFeature(app, method, seg, route);
+    if (feature) trackDemo(app, feature);
+
+    // -- AUTH --
+    if (route === "auth/login" && method === "POST") {
+      const creds = { erp: { u: "admin", p: "password123" }, agent: { u: "081288991020", p: "123456" }, jamaah: { u: "3204010203020021", p: "1985-05-12" } }[app];
+      const id = body.username || body.no_hp || body.nik || "";
+      if (String(id) === creds.u && String(body.password || body.pin || body.tgl_lahir || "") === creds.p) {
+        setToken(app, "demo-token-" + app);
+        const ROLE = DEMO_ROLES[demoRole()];
+        // Paritas bentuk respons login tenant (AuthController): login.html membaca
+        // res.data.token + identitas per app (user / agent / jamaah).
+        const me = d.agen[0] || {};
+        const identity = {
+          erp: { user: { nama: ROLE.nama, role: demoRole(), entitas: ROLE.entitas } },
+          agent: { agent: { id: me.id_agen, nama: me.nama, role: me.role, nama_tier: (demoTier(d, me.id_tier) || {}).nama || "", entitas: "PST-01", wilayah: me.wilayah, alamat: me.alamat, link_foto: "" } },
+          jamaah: { jamaah: { id: "JMH-1001", nama: "AHMAD SULAIMAN" } },
+        }[app];
+        return ok({ token: "demo-token-" + app, ...identity, role: app === "erp" ? demoRole() : app === "agent" ? "DCM" : "JAMAAH", nama: app === "erp" ? ROLE.nama : app === "agent" ? "H. Karimullah" : "AHMAD SULAIMAN" }, "Login demo berhasil.");
+      }
+      return fail("Kredensial demo salah - lihat kartu di halaman demo untuk username/password yang benar.");
+    }
+    if (route === "auth/logout") { clearToken(app); return ok({}, "Logout."); }
+    // RBAC: izin per peran = salinan Rbac::MATRIX tenant-app (DEMO_RBAC). Tanpa mode uji selalu Owner.
+    if (route === "auth/me") {
+      const r = demoRole(), R = DEMO_ROLES[r];
+      return ok({ app, user_id: app === "erp" ? R.id : "USR-001", role: app === "erp" ? r : app === "agent" ? "DCM" : "JAMAAH",
+        entitas: app === "erp" ? R.entitas : "PST-01", nama: app === "erp" ? R.nama : "Ummu Aisyah",
+        username: app === "erp" ? ((d.users || []).find((u) => u.id_user === R.id) || {}).username || "admin" : null, // Akun saya
+        permissions: app === "erp" ? DEMO_RBAC.perms[r] || [] : [],
+        manageable_roles: app === "erp" ? DEMO_RBAC.manageable[r] || [] : [] });
+    }
+
+    // Guard: semua endpoint selain auth butuh token (paritas middleware)
+    if (!token(app)) return { success: false, message: "Session expired", __401: true };
+
+    // -- PUBLIC (tanpa token) --
+    if (route === "tenant/branding") {
+      return ok({
+        nama_travel: d.settings.NAMA_TRAVEL, nama_pt: d.settings.NAMA_PT,
+        logo_url: d.settings.LOGO_URL, alamat: d.settings.ALAMAT_TRAVEL, izin_ppiu: d.settings.IZIN_PPIU,
+        agent_menu: { beranda: true, paket: true, jamaah: true, komisi: true, tim: true, edukasi: true, profil: true,
+          _order: ["beranda", "paket", "jamaah", "komisi", "tim", "edukasi", "profil"] },
+      });
+    }
+    if (route === "public/jadwal") {
+      // Paritas PublicJadwal (B-31): hanya jadwal Aktif, urut tanggal; varian urut harga naik + info hotel; tanpa harga setor.
+      // harga_mulai = harga varian termurah, null bila belum ada katalog (dulu selalu 0 karena 0 ikut dihitung).
+      return ok(d.jadwal.filter((j) => j.status_aktif === "Aktif")
+        .sort((a, b) => String(a.tgl_keberangkatan || "9999").localeCompare(String(b.tgl_keberangkatan || "9999")))
+        .map((j) => {
+          const varian = demoVarian(d, j.id_jadwal, false);
+          return { ...j, terisi: d.peserta.filter((p) => p.jadwal_id === j.id_jadwal).length, harga_mulai: varian.length ? varian[0].harga : null, varian };
+        }));
+    }
+
+    // -- ERP: DASHBOARD --
+    if (route === "dashboard/summary") {
+      const aktif = d.jamaah.filter((j) => !j.status_void);
+      const omzet = d.pembayaran.reduce((a, p) => a + p.nominal, 0);
+      const tren = [];
+      for (let i = 5; i >= 0; i--) {
+        const dt = new Date(); dt.setMonth(dt.getMonth() - i);
+        const ym = dt.toISOString().slice(0, 7);
+        tren.push({ ym, n: d.jamaah.filter((j) => (j.created_at || "").startsWith(ym)).length || Math.max(1, 8 - i) });
+      }
+      return ok({
+        kpi: { total_jamaah: aktif.length, total_void: d.jamaah.length - aktif.length, omzet, jadwal_aktif: d.jadwal.filter((j) => j.status_aktif === "Aktif").length,
+          // Paritas SummaryController::erp: entitas aktif + agen aktif per tier (nama sama lintas entitas digabung)
+          total_entitas: d.entitas.filter((e) => e.status_aktif === "Aktif").length,
+          agen_per_tier: Object.values(d.agen.filter((a) => a.status_akun === "AKTIF").reduce((m, a) => {
+            const t = demoTier(d, a.id_tier), nama = t ? t.nama : "Tanpa tier";
+            m[nama] = m[nama] || { nama, n: 0, u: t ? t.urutan : 99 }; m[nama].n++; return m;
+          }, {})).sort((a, b) => a.u - b.u || a.nama.localeCompare(b.nama)).map(({ nama, n }) => ({ nama, n })),
+          total_agen: d.agen.filter((a) => a.status_akun === "AKTIF").length },
+        quota: { current: aktif.length, limit: 50, percent: Math.round(aktif.length / 50 * 100), level: "ok" },
+        tren_6_bulan: tren,
+        top_cabang: [{ nama: "Kantor Pusat", n: aktif.length }],
+        isu_berkas: aktif.filter((j) => j.status_dokumen === "Pending").slice(0, 5)
+          .map((j) => ({ jamaah: j.nama, no_hp: j.no_hp, isu: [!j.no_paspor ? "Paspor belum ada" : "Paspor < 6 bln", "Foto KTP belum unggah"] })),
+        read_only: false,
+        // Paritas ringkasan license tenant-app (22 Okt 2026) - demo = paket Growth
+        license: { plan_key: "growth", mode: "full", features: ["erp", "agent", "jamaah", "brosur", "wa_byo", "ocr_ai", "fcm"],
+          expires_at: new Date(Date.now() + 6 * 86400000).toISOString(), days_remaining: 6, last_synced_at: new Date().toISOString(), in_grace: false },
+      });
+    }
+
+    // -- ERP: JAMAAH CRUD --
+    if (route === "jamaah" && method === "GET") {
+      const q = new URLSearchParams(path.split("?")[1] || "");
+      let items = [...d.jamaah];
+      const s = (q.get("search") || "").toLowerCase();
+      if (s) items = items.filter((j) => (j.nama || "").toLowerCase().includes(s) || (j.no_identitas || "").includes(s) || (j.no_paspor || "").includes(s));
+      if (q.get("include_void") !== "1") items = items.filter((j) => !j.status_void);
+      return ok({ items, pagination: { page: 1, per_page: 50, total: items.length, total_pages: 1 } });
+    }
+    if (route === "jamaah" && method === "POST") {
+      const nama = (body.nama || "").toUpperCase();
+      if (nama.length < 3) return fail("Nama minimal 3 karakter.");
+      if (body.no_identitas && d.jamaah.some((j) => j.no_identitas === body.no_identitas)) return fail("Duplicate: NIK sudah terdaftar.");
+      const j = { id_jamaah: nextId("JMH"), status_dokumen: "Pending", status_void: 0, id_entitas: "PST-01", created_at: new Date().toISOString(), ...body, nama };
+      d.jamaah.push(j); save(d);
+      return ok(j, "Jamaah demo tersimpan (localStorage).", 201);
+    }
+    if (seg[0] === "jamaah" && seg[2] === "dokumen" && method === "GET") {
+      d.dokumen_jamaah = d.dokumen_jamaah || [];
+      return ok(d.dokumen_jamaah.filter((x) => x.jamaah_id === seg[1]));
+    }
+    if (seg[0] === "jamaah" && seg[2] === "dokumen" && method === "POST") {
+      d.dokumen_jamaah = d.dokumen_jamaah || [];
+      const docType = body.doc_type || (body.get ? body.get("doc_type") : "KTP");
+      const url = body.url || (body.get ? body.get("url") : "");
+      const doc = { id_dokumen: "DOC-" + Date.now(), jamaah_id: seg[1], doc_type: docType, url: url, diunggah_pada: new Date().toISOString() };
+      d.dokumen_jamaah.push(doc); save(d);
+      return ok(doc, "Dokumen berhasil disimpan.", 201);
+    }
+    if (route === "jamaah/import/template") {
+      return new Response(new Blob(["template-demo"], { type: "application/octet-stream" }), { status: 200 });
+    }
+    if (route === "jamaah/import" && method === "POST") {
+      return ok({ inserted: 0, failed: [{ baris: 1, alasan: "Demo mode - import dinonaktifkan (tanpa database)." }] }, "Demo: import dinonaktifkan.");
+    }
+    if (seg[0] === "jamaah" && seg.length === 2 && method === "GET") {
+      const j = d.jamaah.find((x) => x.id_jamaah === seg[1]);
+      return j ? ok(j) : fail("Jamaah tidak ditemukan.");
+    }
+    if (seg[0] === "jamaah" && seg.length === 2 && method === "PUT") {
+      const j = d.jamaah.find((x) => x.id_jamaah === seg[1]);
+      if (!j) return fail("Jamaah tidak ditemukan.");
+      Object.assign(j, body, { nama: (body.nama || j.nama).toUpperCase() });
+      save(d); return ok(j, "Jamaah diperbarui.");
+    }
+
+    // -- ERP: JADWAL + relasi --
+    if (route === "jadwal" && method === "GET") {
+      return ok(d.jadwal.map((j) => ({
+        ...j, terisi: d.peserta.filter((p) => p.jadwal_id === j.id_jadwal).length,
+        // Kuota 0 = tanpa batas kursi, tidak tampil di Portal Agen (paritas backend 24 Okt 2026)
+        tanpa_batas: Number(j.kuota) <= 0,
+        sisa_kursi: Number(j.kuota) <= 0 ? null : Math.max(0, j.kuota - d.peserta.filter((p) => p.jadwal_id === j.id_jadwal).length - j.blokir_kuota),
+      })));
+    }
+    if (route === "jadwal" && method === "POST") {
+      const j = { id_jadwal: nextId("JDWL"), status_aktif: "Aktif", ...body };
+      d.jadwal.push(j); save(d); return ok(j, "Jadwal dibuat.", 201);
+    }
+    if (seg[0] === "jadwal" && seg.length === 2 && method === "PUT") {
+      const j = d.jadwal.find((x) => x.id_jadwal === seg[1]);
+      if (!j) return fail("Jadwal tidak ditemukan.");
+      Object.assign(j, body); save(d); return ok(j, "Jadwal diperbarui.");
+    }
+    if (seg[0] === "jadwal" && seg[2] === "plot" && method === "POST") {
+      const jd = d.jadwal.find((x) => x.id_jadwal === seg[1]);
+      const jamaah = d.jamaah.find((x) => x.id_jamaah === body.jamaah_id);
+      if (!jd || !jamaah) return fail("Jadwal/jamaah tidak ditemukan.");
+      if (d.peserta.some((p) => p.jadwal_id === seg[1] && p.jamaah_id === body.jamaah_id)) return fail("Jamaah sudah terdaftar di jadwal ini.");
+      const kat = d.katalog.find((k) => k.jadwal_id === seg[1] && (k.jenis_paket === body.jenis_paket || k.id_katalog === body.katalog_id));
+      if (!kat) return fail("Katalog harga untuk paket ini tidak ditemukan.");
+      const gratis = ["Tour Leader", "Muthawwif", "FPU / Free"].includes(body.kategori_peserta);
+      d.peserta.push({ jadwal_id: seg[1], jamaah_id: body.jamaah_id, nama: jamaah.nama,
+        kategori_peserta: body.kategori_peserta || "Jamaah Reguler", jenis_paket: kat.jenis_paket,
+        harga_jual_riil: gratis ? 0 : (Number(body.harga_jual_riil) || kat.harga_jual_std), harga_setor_riil: gratis ? 0 : kat.harga_setor_std,
+        id_agen_closing: body.id_agen_closing || null, terbayar: 0 });
+      save(d); return ok({ plotted: true }, "Plotting berhasil.", 201);
+    }
+    if (seg[0] === "jadwal" && seg[2] === "peserta" && method === "GET") {
+      const LG = ["koper_bagasi", "koper_kabin", "ihram_mukena", "tas_paspor", "batik", "buku_doa"];
+      return ok({ jadwal: d.jadwal.find((x) => x.id_jadwal === seg[1]) || null, peserta: d.peserta.filter((p) => p.jadwal_id === seg[1]).map((p) => {
+        const jm = d.jamaah.find((x) => x.id_jamaah === p.jamaah_id) || {};
+        const total = p.terbayar || 0;
+        return { jamaah_id: p.jamaah_id, nama: p.nama, no_identitas: jm.no_identitas || "", no_paspor: jm.no_paspor || "", no_hp: jm.no_hp || "",
+          jenis_paket: p.jenis_paket, kategori_peserta: p.kategori_peserta, harga_jual_riil: p.harga_jual_riil, harga_setor_riil: p.harga_setor_riil,
+          ...Object.fromEntries(LG.map((k) => [k, p[k] ? 1 : 0])), total_dibayar: total,
+          agen_closing: (d.agen.find((a) => a.id_agen === p.id_agen_closing) || {}).nama || null,
+          lunas: total >= (p.harga_jual_riil || 0) && (p.harga_jual_riil || 0) > 0 };
+      }) });
+    }
+    if (seg[0] === "jadwal" && seg[2] === "logistik" && method === "PUT") {
+      const p = d.peserta.find((x) => x.jadwal_id === seg[1] && x.jamaah_id === body.jamaah_id);
+      if (!p) return fail("Peserta tidak ditemukan.");
+      ["koper_bagasi", "koper_kabin", "ihram_mukena", "tas_paspor", "batik", "buku_doa"].forEach((k) => { if (k in body) p[k] = body[k] ? 1 : 0; });
+      save(d); return ok({ updated: true }, "Logistik updated.");
+    }
+    if (seg[0] === "jadwal" && seg[2] === "move" && method === "POST") {
+      // Paritas JadwalController::move (24 Okt 2026): tolak tujuan sama, jamaah ganda, kuota penuh, tanggal lewat
+      const p = d.peserta.find((x) => x.jadwal_id === seg[1] && x.jamaah_id === body.jamaah_id);
+      const to = body.to_jadwal_id || body.target_jadwal_id;
+      const tj = d.jadwal.find((x) => x.id_jadwal === to);
+      if (!to || !tj) return fail("Jadwal tujuan tidak ditemukan.");
+      if (!p) return fail("Peserta tidak ditemukan.");
+      if (to === seg[1]) return fail("Jadwal tujuan sama dengan jadwal asal.");
+      if (d.peserta.some((x) => x.jadwal_id === to && x.jamaah_id === body.jamaah_id)) return fail("Jamaah sudah terdaftar di jadwal tujuan.");
+      if (tj.tgl_keberangkatan && tj.tgl_keberangkatan < daysAgo(0)) return fail("Tanggal keberangkatan jadwal tujuan sudah lewat.");
+      const terisiTujuan = d.peserta.filter((x) => x.jadwal_id === to).length;
+      if (Number(tj.kuota) > 0 && terisiTujuan >= Number(tj.kuota) - (Number(tj.blokir_kuota) || 0)) return fail("Kuota jadwal tujuan penuh.");
+      p.jadwal_id = to;
+      d.pembayaran.filter((x) => x.jamaah_id === body.jamaah_id && x.jadwal_id === seg[1]).forEach((x) => { x.jadwal_id = to; });
+      save(d); return ok({ moved: true }, "Peserta dipindah.");
+    }
+    if (seg[0] === "jadwal" && seg[2] === "cancel" && method === "POST") {
+      d.peserta = d.peserta.filter((x) => !(x.jadwal_id === seg[1] && x.jamaah_id === body.jamaah_id));
+      save(d); return ok({ cancelled: true }, "Keberangkatan dibatalkan (Kas Gantung).");
+    }
+    if (seg[0] === "jadwal" && seg[2] === "manifest" && seg[3] === "siskopatuh") {
+      const rows = d.peserta.filter((p) => p.jadwal_id === seg[1]).map((p) => {
+        const j = d.jamaah.find((x) => x.id_jamaah === p.jamaah_id) || {};
+        const r = Array(32).fill("");
+        Object.assign(r, { 0: j.j_kelamin === "P" ? "NYONYA" : "TUAN", 1: p.nama, 2: j.nama_ayah || "", 3: j.jenis_identitas || "NIK", 4: j.no_identitas || "",
+          5: j.nama_paspor || "", 6: j.no_paspor || "", 9: j.tempat_lahir || "", 10: j.tgl_lahir || "", 11: j.alamat || "", 12: j.provinsi || "", 13: j.kabupaten || "",
+          17: j.no_hp || "", 18: "WNI", 19: j.status_pernikahan || "", 20: j.pendidikan || "", 21: j.pekerjaan || "" });
+        return r;
+      });
+      return ok({ jadwal: { id: seg[1] }, jadwal_id: seg[1], total_peserta: rows.length, rows });
+    }
+    if (seg[0] === "jadwal" && seg[2] === "manifest" && seg[3] === "visa") {
+      const csv = "\uFEFFNo;Nama;Paspor;Kewarganegaraan\n" + d.peserta.filter((p) => p.jadwal_id === seg[1]).map((p, i) => `${i + 1};${p.nama};;WNI`).join("\n");
+      return new Response(new Blob([csv], { type: "text/csv" }), { status: 200 });
+    }
+
+    // -- ERP: KATALOG -- (hotel dari Katalog Hotel, B-31: teks hotel_mekkah/hotel_madinah dari klien diabaikan, diisi dari nama hotel)
+    if (route === "katalog" && method === "GET") {
+      const q = new URLSearchParams(path.split("?")[1] || "");
+      const urutJenis = { "VVIP *5": 1, "VIP *4/*5": 2, "Spesial *4": 3, "Spesial": 4, "Ekonomis": 5 };
+      const tgl = (k) => String((d.jadwal.find((j) => j.id_jadwal === k.jadwal_id) || {}).tgl_keberangkatan || "9999");
+      return ok(d.katalog.filter((k) => (!q.get("jadwal_id") || k.jadwal_id === q.get("jadwal_id")) && (!q.get("jenis_paket") || k.jenis_paket === q.get("jenis_paket")))
+        .sort((a, b) => tgl(a).localeCompare(tgl(b)) || (urutJenis[a.jenis_paket] || 6) - (urutJenis[b.jenis_paket] || 6))
+        .map((k) => katalogTampil(d, k)));
+    }
+    if ((route === "katalog" && method === "POST") || (seg[0] === "katalog" && seg.length === 2 && method === "PUT")) {
+      const b = body || {};
+      const lama = method === "PUT" ? d.katalog.find((x) => x.id_katalog === seg[1]) : null;
+      if (method === "PUT" && !lama) return fail("Katalog tidak ditemukan.");
+      // Validasi semua hotel dulu; baris belum diubah bila ada yang ditolak
+      const hotel = {};
+      for (const kolom of ["hotel_mekkah", "hotel_madinah"]) {
+        if (lama && !(kolom + "_id" in b)) continue;
+        const [h, galat] = hotelDipilih(d, b[kolom + "_id"], kolom, lama ? lama[kolom + "_id"] : null);
+        if (galat) return fail(galat);
+        hotel[kolom] = h;
+      }
+      const { hotel_mekkah, hotel_madinah, hotel_mekkah_id, hotel_madinah_id, hotel_setaraf, hotel_mekkah_info, hotel_madinah_info, ...lain } = b;
+      const k = lama || { id_katalog: nextId("KAT"), hotel_mekkah: null, hotel_madinah: null, hotel_mekkah_id: null, hotel_madinah_id: null, hotel_setaraf: false };
+      Object.assign(k, lain);
+      Object.entries(hotel).forEach(([kolom, h]) => { k[kolom + "_id"] = h ? h.id_hotel : null; k[kolom] = h ? h.nama : null; });
+      if (!lama || "hotel_setaraf" in b) k.hotel_setaraf = hotelBool(b.hotel_setaraf ?? false);
+      if (!lama) d.katalog.push(k);
+      save(d);
+      return lama ? ok(katalogTampil(d, k), "Katalog diperbarui.") : ok(katalogTampil(d, k), "Katalog dibuat.", 201);
+    }
+    if (seg[0] === "katalog" && seg.length === 2 && method === "DELETE") { d.katalog = d.katalog.filter((x) => x.id_katalog !== seg[1]); save(d); return ok({ deleted: true }, "Katalog dihapus."); }
+
+    // -- ERP: KATALOG HOTEL (paritas HotelController, B-31). Penolakan izin HOTEL_WRITE tidak disimulasikan (lihat DEMO_UJI). --
+    if (route === "hotel" && method === "GET") {
+      const urut = (kota) => (HOTEL_KOTA.indexOf(kota) + 1) || HOTEL_KOTA.length + 1;
+      return ok({ items: d.katalog_hotel.slice()
+        .sort((a, b) => urut(a.kota) - urut(b.kota) || a.kota.localeCompare(b.kota) || a.nama.toLowerCase().localeCompare(b.nama.toLowerCase()))
+        .map((h) => hotelBaris(d, h)), kota: HOTEL_KOTA.slice() });
+    }
+    if (route === "hotel" && method === "POST") {
+      const [data, galat] = hotelValidasi(body || {}, null);
+      if (galat) return fail(galat);
+      if (hotelNamaDipakai(d, data.nama, data.kota, null)) return fail(hotelNamaGanda(data.kota));
+      const h = { id_hotel: "HTL-" + Date.now() + "-" + Math.floor(Math.random() * 65536).toString(16).toUpperCase().padStart(4, "0"),
+        nama: data.nama, kota: data.kota, bintang: data.bintang, jarak_meter: data.jarak_meter, foto_url: null, status_aktif: true };
+      d.katalog_hotel.push(h); save(d);
+      return ok(hotelBaris(d, h), "Hotel ditambahkan.", 201);
+    }
+    if (seg[0] === "hotel" && seg.length >= 2) {
+      const h = d.katalog_hotel.find((x) => x.id_hotel === seg[1]);
+      if (seg.length === 3 && seg[2] === "foto" && method === "POST") {
+        if (!h) return fail("Hotel tidak ditemukan.");
+        if (body && body.foto_url) { h.foto_url = body.foto_url; save(d); }
+        return ok({ foto_url: h.foto_url }, "Foto hotel berhasil disimpan.", 201);
+      }
+      if (seg.length === 2 && method === "PUT") {
+        if (!h) return fail("Hotel tidak ditemukan.");
+        const [data, galat] = hotelValidasi(body || {}, h);
+        if (galat) return fail(galat);
+        const dipakai = hotelDipakai(d, h.id_hotel);
+        if (data.kota !== h.kota && dipakai > 0) {
+          return fail(`Kota hotel tidak bisa diganti karena hotel ini dipakai ${dipakai} paket di Katalog Harga. Tambahkan sebagai hotel baru di kota yang benar.`);
+        }
+        if (hotelNamaDipakai(d, data.nama, data.kota, h.id_hotel)) return fail(hotelNamaGanda(data.kota));
+        // Salinan nama di Katalog Harga (ekspor, brosur, teks promosi) mengikuti nama baru
+        if (data.nama !== h.nama) {
+          d.katalog.forEach((k) => { if (k.hotel_mekkah_id === h.id_hotel) k.hotel_mekkah = data.nama; if (k.hotel_madinah_id === h.id_hotel) k.hotel_madinah = data.nama; });
+        }
+        Object.assign(h, data); save(d);
+        return ok(hotelBaris(d, h), "Hotel diperbarui.");
+      }
+      if (seg.length === 2 && method === "DELETE") {
+        if (!h) return fail("Hotel tidak ditemukan.");
+        const dipakai = hotelDipakai(d, h.id_hotel);
+        if (dipakai > 0) return fail(`Hotel ini dipakai ${dipakai} paket di Katalog Harga, jadi tidak bisa dihapus. Nonaktifkan saja supaya tidak muncul di pilihan paket baru.`);
+        d.katalog_hotel = d.katalog_hotel.filter((x) => x !== h); save(d);
+        return ok({ deleted: h.id_hotel }, "Hotel dihapus.");
+      }
+    }
+
+    // -- ERP: PEMBAYARAN --
+    if (route === "pembayaran" && method === "GET") return ok({ items: d.pembayaran.map((p) => ({ ...p, nama_jamaah: p.nama_jamaah || p.jamaah_nama || (d.jamaah.find((x) => x.id_jamaah === p.jamaah_id) || {}).nama || p.jamaah_id })), pagination: { page: 1, per_page: 10, total: d.pembayaran.length, total_pages: 1 } });
+    if (route === "pembayaran/summary") {
+      const omzet = d.pembayaran.reduce((a, p) => a + p.nominal, 0);
+      const piutang = d.peserta.reduce((a, p) => a + Math.max(0, (p.harga_jual_riil || 0) - (p.terbayar || 0)), 0);
+      return ok({ omzet_masuk: omzet, total_tagihan: omzet + piutang, omzet_bulan_ini: omzet, piutang, komisi_pending: 8400000, pembayaran_hari_ini: d.pembayaran.filter((p) => p.tanggal === daysAgo(0)).reduce((a, p) => a + p.nominal, 0) });
+    }
+    if (route === "pembayaran" && method === "POST") {
+      if (!["Uang Muka", "Cicilan", "Pelunasan"].includes(body.jenis === "Uang Muka (DP)" ? "Uang Muka" : body.jenis)) return fail("Jenis pembayaran tidak valid.");
+      const p = { id_bayar: "INV-" + Math.floor(10000 + Math.random() * 89999) + "-" + Math.floor(1000 + Math.random() * 8999), tanggal: daysAgo(0), nama_jamaah: (d.jamaah.find((x) => x.id_jamaah === body.jamaah_id) || {}).nama || body.jamaah_id, ...body, jenis: body.jenis === "Uang Muka (DP)" ? "Uang Muka" : body.jenis };
+      d.pembayaran.unshift(p);
+      const pes = d.peserta.find((x) => x.jadwal_id === body.jadwal_id && x.jamaah_id === body.jamaah_id);
+      if (pes) pes.terbayar = (pes.terbayar || 0) + p.nominal;
+      save(d); return ok(p, "Kwitansi tersimpan.", 201);
+    }
+    if (seg[0] === "pembayaran" && seg[2] === "kuitansi") return new Response(new Blob(["%PDF-1.4\n% Demo KelolaUmroh - kuitansi " + seg[1] + " (mode demo tanpa server)."], { type: "application/pdf" }), { status: 200 });
+    if (seg[0] === "export" && seg[1] === "pembayaran") {
+      const csv = "\uFEFFid_bayar,jamaah_id,jadwal_id,tanggal,nominal,jenis\n" + d.pembayaran.map((p) => [p.id_bayar, p.jamaah_id, p.jadwal_id, p.tanggal, p.nominal, p.jenis].join(",")).join("\n");
+      return new Response(new Blob([csv], { type: "text/csv" }), { status: 200, headers: { "Content-Disposition": 'attachment; filename="export-pembayaran-demo.csv"' } });
+    }
+    if (seg[0] === "pembayaran" && seg.length === 2 && method === "DELETE") { d.pembayaran = d.pembayaran.filter((x) => x.id_bayar !== seg[1]); save(d); return ok({ deleted: true }, "Kwitansi dihapus."); }
+
+    // -- ERP: AGEN --
+    if (route === "agen" && method === "GET") {
+      const status = new URLSearchParams(path.split("?")[1] || "").get("status");
+      const sesi = DEMO_ROLES[demoRole()];
+      return ok(d.agen.filter((a) => (!status || a.status_akun === status) && (sesi.entitas === "PST-01" || (a.id_entitas || "PST-01") === sesi.entitas)).map((a) => demoAgenRow(d, a)));
+    }
+    // Paritas AgenController (komisi tier): tier aktif dari entitas agen wajib; perekrut opsional, aktif, satu entitas
+    const demoTierSah = (idTier, ent) => {
+      const t = demoTier(d, idTier);
+      if (!t || t.id_entitas !== ent) return "Pilih tier agen dari entitas agen itu.";
+      return t.aktif ? t : `Tier ${t.nama} sudah nonaktif. Pilih tier lain.`;
+    };
+    const demoPerekrutSah = (up, ent, idAgen) => {
+      let p = d.agen.find((x) => x.id_agen === up);
+      if (!p) return "Perekrut tidak ditemukan.";
+      if (p.status_akun !== "AKTIF") return "Perekrut tidak aktif.";
+      if ((p.id_entitas || "PST-01") !== ent) return "Perekrut harus dari entitas yang sama dengan agen.";
+      for (let i = 0; p && idAgen && i < 50; i++) {
+        if (p.id_agen === idAgen) return "Perekrut tidak boleh agen itu sendiri atau rekrutannya.";
+        p = d.agen.find((x) => x.id_agen === p.id_upline);
+      }
+      return null;
+    };
+    if (route === "agen" && method === "POST") {
+      if (d.agen.some((a) => a.no_hp === body.no_hp)) return fail("NoHP sudah terdaftar.");
+      const ent = demoRole() === "OWNER" && body.id_entitas ? body.id_entitas : DEMO_ROLES[demoRole()].entitas;
+      const t = demoTierSah(body.id_tier, ent);
+      if (typeof t === "string") return fail(t);
+      const tolak = body.id_upline ? demoPerekrutSah(body.id_upline, ent, null) : null;
+      if (tolak) return fail(tolak);
+      const { pin, ...isi } = body;
+      const a = { id_agen: nextId("AGN"), status_akun: "AKTIF", ...isi, id_tier: t.id, role: demoRoleLama(t.urutan), id_upline: body.id_upline || null, id_entitas: ent, nama: (body.nama || "").toUpperCase() };
+      d.agen.push(a); save(d); return ok(demoAgenRow(d, a), `Agen ${a.nama} terdaftar sebagai ${t.nama}.`, 201);
+    }
+    if (seg[0] === "agen" && seg.length === 2 && method === "PUT") {
+      const a = d.agen.find((x) => x.id_agen === seg[1]); if (!a) return fail("Agen tidak ditemukan.");
+      const { pin, pin_baru, id_entitas, id_tier, id_upline, ...isi } = body;
+      let ent = a.id_entitas || "PST-01";
+      if (id_entitas && id_entitas !== ent) {
+        if (demoRole() !== "OWNER") return fail("Hanya Owner yang bisa memindahkan agen ke entitas lain.");
+        if (!id_tier) return fail("Pilih tier dari entitas baru.");
+        ent = id_entitas;
+        if (!("id_upline" in body)) a.id_upline = null;
+      }
+      if (id_tier) {
+        const t = demoTierSah(id_tier, ent);
+        if (typeof t === "string") return fail(t);
+        Object.assign(a, { id_tier: t.id, role: demoRoleLama(t.urutan) });
+      }
+      if ("id_upline" in body) {
+        const tolak = id_upline ? demoPerekrutSah(id_upline, ent, a.id_agen) : null;
+        if (tolak) return fail(tolak);
+        a.id_upline = id_upline || null;
+      }
+      Object.assign(a, isi, { id_entitas: ent }); save(d); return ok(demoAgenRow(d, a), "Agen diperbarui.");
+    }
+    if (seg[0] === "agen" && seg[2] === "toggle") {
+      const a = d.agen.find((x) => x.id_agen === seg[1]);
+      if (a && a.status_akun !== "AKTIF") {
+        const t = demoTier(d, a.id_tier);
+        if (!t || !t.aktif) return fail("Tier agen ini sudah nonaktif. Pilih tier aktif lewat Edit agen, lalu aktifkan.");
+      }
+      if (a) a.status_akun = a.status_akun === "AKTIF" ? "NONAKTIF" : "AKTIF";
+      save(d); return ok(a, "Status di-toggle.");
+    }
+    if (seg[0] === "agen" && seg[2] === "tabungan") {
+      // Bentuk respons sama dengan backend /agen/{id}/tabungan
+      return ok({ saldo: { siap_cair: 500000, pending: 400000, sudah_cair: 300000 }, riwayat: [
+        { id_split: "SPLIT-001", jamaah: "AHMAD SULAIMAN", paket: "Umrah VIP Oktober", nominal: 500000, status: "Pending", tier: "Tier 1", tanggal: "2026-09-02" },
+        { id_split: "SPLIT-002", jamaah: "SITI AMINAH", paket: "Umrah Reguler Desember", nominal: 400000, status: "Pending", tanggal: "2026-07-12" },
+        { id_split: "SPLIT-000", jamaah: "NUR HALIMAH", paket: "Umrah VIP Oktober", nominal: 300000, status: "Cair", tanggal: "2026-06-20" },
+      ] });
+    }
+    if (seg[0] === "agen" && seg[2] === "cairkan") {
+      const a = d.agen.find((x) => x.id_agen === seg[1]);
+      if (a && !(a.nama_bank && a.no_rekening && a.nama_rekening)) return fail("Rekening belum lengkap - isi via modal Agen atau Portal Agen tab Profil.");
+      return ok({ transaksi_dicairkan: 3, nominal_dicairkan: 8300000, saldo_setelah: { siap_cair: 0, pending: 0, sudah_cair: 29900000 },
+        rekening_tujuan: a ? { nama_bank: a.nama_bank, no_rekening: a.no_rekening, nama_rekening: a.nama_rekening } : null },
+        "Berhasil: 3 transaksi dicairkan - transfer ke rekening agen.");
+    }
+    if (route === "agen/genealogy") return ok([]);
+
+    // -- ERP: Komisi Agen (paritas KomisiTierController) --
+    const demoBolehUbahTier = (en) => demoRole() === "OWNER" || (en.tipe_entitas === "CABANG" && demoRole() === "KEPALA_ENTITAS" && DEMO_ROLES.KEPALA_ENTITAS.entitas === en.id);
+    if (route === "komisi-tier" && method === "GET") {
+      const sesi = DEMO_ROLES[demoRole()];
+      const ent = new URLSearchParams(path.split("?")[1] || "").get("entitas") || sesi.entitas;
+      const en = d.entitas.find((e) => e.id === ent);
+      if (!en || (sesi.entitas !== "PST-01" && ent !== sesi.entitas)) return fail("Entitas tidak ditemukan.");
+      const cabang = en.tipe_entitas === "CABANG";
+      return ok({
+        entitas: { id: en.id, nama: en.nama_entitas, tipe: en.tipe_entitas, batas_bawaan: cabang ? Number(en.komisi_cabang) || 0 : null,
+          batas_per_jenis: cabang ? { ...((d.komisi_cabang_jenis || {})[en.id] || {}) } : null },
+        jenis_paket: Object.entries(demoJenisPaket(d)).map(([j, m]) => ({ jenis_paket: j, margin_terkecil: sesi.entitas === "PST-01" ? m : null })),
+        tiers: demoTiers(d, en.id).map((t) => ({ ...t, penimpa: { ...t.penimpa },
+          jumlah_agen: d.agen.filter((a) => Number(a.id_tier) === t.id && a.status_akun === "AKTIF").length })),
+        boleh_ubah: demoBolehUbahTier(en), maks_tier: 5 });
+    }
+    if (seg[0] === "komisi-tier" && seg.length === 2 && method === "PUT") {
+      const en = d.entitas.find((e) => e.id === seg[1]);
+      if (!en) return fail("Entitas tidak ditemukan.");
+      if (!demoBolehUbahTier(en)) return fail("Tabel komisi tier ini hanya bisa diubah Owner atau Kepala Cabang cabang itu.");
+      const masuk = Array.isArray(body.tiers) ? body.tiers : [];
+      if (!masuk.length) return fail("Isi minimal satu tier.");
+      const nama = new Set();
+      const baru = [];
+      for (const t of masuk) {
+        const n = String(t.nama || "").trim().replace(/\s+/g, " ");
+        if (!n || n.length > 50) return fail("Nama tier wajib diisi (maksimal 50 karakter).");
+        if (nama.has(n.toLowerCase())) return fail(`Nama tier "${n}" dipakai dua kali.`);
+        nama.add(n.toLowerCase());
+        const angka = (v) => (v === "" || v === null || v === undefined ? null : Number(String(v).replace(/\D/g, "")));
+        const penimpa = {};
+        Object.entries(t.penimpa || {}).forEach(([j, v]) => { if (angka(v) !== null) penimpa[j] = angka(v); });
+        baru.push({ id: t.id ? Number(t.id) : null, nama: n, nominal_bawaan: angka(t.nominal_bawaan), aktif: t.aktif !== false, penimpa });
+      }
+      const aktif = baru.filter((t) => t.aktif).length;
+      if (aktif < 1 || aktif > 5) return fail("Jumlah tier aktif harus 1 sampai 5.");
+      const lama = demoTiers(d, en.id);
+      for (const t of baru) {
+        const l = lama.find((x) => x.id === t.id);
+        const pakai = d.agen.filter((a) => Number(a.id_tier) === t.id && a.status_akun === "AKTIF").length;
+        if (t.id && !t.aktif && l && pakai) return fail(`Tier ${l.nama} masih dipakai ${pakai} agen aktif. Pindahkan agennya ke tier lain sebelum menonaktifkan.`);
+      }
+      for (const l of lama.filter((x) => !baru.some((t) => t.id === x.id))) {
+        const pakai = d.agen.filter((a) => Number(a.id_tier) === l.id).length;
+        if (pakai) return fail(`Tier ${l.nama} masih dipakai ${pakai} agen, jadi tidak bisa dihapus.`);
+      }
+      if (en.tipe_entitas === "CABANG") {
+        const per = (d.komisi_cabang_jenis || {})[en.id] || {};
+        const batas = (j) => (j in per ? per[j] : Number(en.komisi_cabang) || 0);
+        const lebih = [];
+        baru.filter((t) => t.aktif).forEach((t) => {
+          if (t.nominal_bawaan !== null) [null, ...Object.keys(per)].filter((j) => j === null || !(j in t.penimpa)).forEach((j) => {
+            if (t.nominal_bawaan > (j === null ? Number(en.komisi_cabang) || 0 : batas(j))) lebih.push(`${t.nama}${j ? " paket " + j : ""}`);
+          });
+          Object.entries(t.penimpa).forEach(([j, n]) => { if (n > batas(j)) lebih.push(`${t.nama} paket ${j}`); });
+        });
+        if (lebih.length) return { success: false, _http: 422, data: { melebihi: lebih }, message: `Komisi tier melebihi batas komisi cabang yang ditetapkan Owner: ${lebih.slice(0, 5).join("; ")}.` };
+      }
+      let id = Math.max(0, ...d.tier_agen.map((t) => t.id));
+      d.tier_agen = d.tier_agen.filter((t) => t.id_entitas !== en.id).concat(baru.map((t, i) => ({ ...t, id: t.id || ++id, id_entitas: en.id, urutan: i + 1 })));
+      save(d);
+      const margin = demoJenisPaket(d);
+      const peringatan = en.tipe_entitas === "CABANG" ? [] : baru.filter((t) => t.aktif).flatMap((t) => Object.entries(margin)
+        .filter(([j, m]) => m !== null && (demoNominalTier(t, j) ?? -1) > m)
+        .map(([j, m]) => `${t.nama} paket ${j}: komisi Rp${Intl.NumberFormat("id-ID").format(demoNominalTier(t, j))} melebihi margin terkecil Rp${Intl.NumberFormat("id-ID").format(m)}, jadi pendaftaran di jadwal itu akan ditolak.`));
+      return ok({ tiers: demoTiers(d, en.id).map((t) => ({ ...t, jumlah_agen: d.agen.filter((a) => Number(a.id_tier) === t.id && a.status_akun === "AKTIF").length })), peringatan },
+        "Komisi tier disimpan. Berlaku untuk pendaftaran berikutnya.");
+    }
+
+    // -- ERP: baca KTP/paspor di perangkat (26 Okt 2026): demo = lisensi Growth tanpa API key Gemini -> Tesseract di browser --
+    if (route === "ocr/mode") {
+      const tersedia = (DEMO_RBAC.perms[demoRole()] || []).includes("OCR_USE");
+      return ok({ tersedia, mode: tersedia ? "perangkat" : null });
+    }
+    if (route === "ocr/mrz" || route === "ocr/ktp-teks") {
+      if (!(DEMO_RBAC.perms[demoRole()] || []).includes("OCR_USE")) return fail("Akses ditolak: peran ini tidak memakai scan.");
+      if (!String(body.teks || "").trim()) return fail("Tidak ada teks yang terbaca dari foto. Coba foto yang lebih jelas.");
+      const teks = String(body.teks).slice(0, route === "ocr/mrz" ? 4000 : 8000);
+      return route === "ocr/mrz" ? ok(demoOcrPaspor(teks)) : ok(demoOcrKtp(teks), "Hasil baca tidak mengisi form otomatis. Salin nilai yang diperlukan.");
+    }
+    // -- ERP: OCR Gemini (demo - data statis; dipakai bila mode "gemini") --
+    // Bentuk respons = IntegrasiService::ocrKtp/ocrPaspor: { fields, warnings, mrz? }
+    if (route === "ocr/ktp") return ok({ fields: { NoIdentitas: "3204010203020021", Nama: "AHMAD SULAIMAN", TempatLahir: "BANDUNG", TglLahir: "12-05-1985", JKelamin: "L", Alamat: "JL. CATUR 8" }, warnings: [] }, "Hasil AI: salin nilai yang diperlukan.");
+    if (route === "ocr/paspor") return ok({ fields: { NamaPaspor: "AHMAD SULAIMAN", NoPaspor: "X9012454", TglLahir: "12-05-1985", TglExpiry: "03-11-2029" }, mrz: { valid: true, detail: "Semua check digit cocok (dokumen, lahir, expiry)." }, warnings: [] }, "Hasil AI.");
+
+    // -- ERP: BROSUR & UPLOAD --
+    // Brosur per jadwal & varian (25 Okt 2026) - paritas BrosurController; gambar disimpan sebagai data URL di localStorage
+    if (route === "brosur/upload" && method === "POST") {
+      const jenis = body.katalog_id ? "katalog" : "jadwal";
+      const row = jenis === "katalog" ? d.katalog.find((k) => k.id_katalog === body.katalog_id) : d.jadwal.find((j) => j.id_jadwal === body.jadwal_id);
+      if (!row) return fail(jenis === "katalog" ? "Paket tidak ditemukan." : "Pilih jadwal atau paket tujuan brosur.");
+      if (!(body.file instanceof Blob)) return fail("Pilih berkas gambar brosur.");
+      const area = demoAreaBrosur(body.area);
+      if (demoAreaSalah(area)) return fail("Tinggi area kosong harus 5% sampai 40% tinggi brosur.");
+      let g;
+      try { g = await demoSimpanGambar(body.file, 1080, false); } catch (e) { return fail("Gambar tidak dapat dibaca."); }
+      if (g.lebar < 600) return fail(`Lebar brosur ${g.lebar} px terlalu kecil. Minimal 600 px, disarankan 1080 px.`);
+      const lama = [row.link_brosur, row.brosur_area];
+      row.link_brosur = g.dataUrl; row.brosur_area = area;
+      try { save(d); } catch (e) { [row.link_brosur, row.brosur_area] = lama; return fail("Penyimpanan browser penuh. Klik Reset Demo lalu coba lagi."); }
+      const hw = Math.min(g.lebar, 2160), hh = Math.round(g.tinggi * hw / g.lebar);
+      return ok({ jenis, id: body[jenis + "_id"], url: g.dataUrl, brosur_area: area, lebar: g.lebar, tinggi: g.tinggi,
+        hasil_lebar: hw, hasil_tinggi: area === null ? hh + Math.round(hw * 0.19) : hh }, "Brosur tersimpan. Agen langsung bisa mengunduhnya dengan kontak masing-masing.", 201);
+    }
+    if (seg[0] === "brosur" && seg.length === 3 && (method === "PUT" || method === "DELETE")) {
+      const id = decodeURIComponent(seg[2]);
+      const row = seg[1] === "katalog" ? d.katalog.find((k) => k.id_katalog === id) : seg[1] === "jadwal" ? d.jadwal.find((j) => j.id_jadwal === id) : null;
+      if (!row) return fail("Pilih jadwal atau paket tujuan brosur.");
+      if (method === "DELETE") { row.link_brosur = null; row.brosur_area = null; save(d); return ok({ jenis: seg[1], id }, "Brosur dihapus."); }
+      if (!row.link_brosur) return fail("Belum ada brosur yang diunggah.");
+      const area = demoAreaBrosur(body.area);
+      if (demoAreaSalah(area)) return fail("Tinggi area kosong harus 5% sampai 40% tinggi brosur.");
+      row.brosur_area = area; save(d);
+      return ok({ jenis: seg[1], id, brosur_area: area }, "Pengaturan brosur tersimpan.");
+    }
+    if (route === "brosur/pratinjau" && method === "POST") {
+      const area = demoAreaBrosur(body.area);
+      if (demoAreaSalah(area)) return demoGagalRaw(422, "Tinggi area kosong harus 5% sampai 40% tinggi brosur.");
+      const sementara = body.file instanceof Blob ? URL.createObjectURL(body.file) : "";
+      const row = body.katalog_id ? d.katalog.find((k) => k.id_katalog === body.katalog_id) : d.jadwal.find((j) => j.id_jadwal === body.jadwal_id);
+      const src = sementara || row?.link_brosur || "";
+      if (!src) return demoGagalRaw(422, "Brosur belum diunggah atau tidak dapat diambil dari penyimpanan.");
+      try {
+        return demoJpeg(await demoBrosurRender(src, { nama: "Nama Agen", hp: "081234567890", wilayah: body.wilayah ? "Wilayah Agen" : null }, area, body.foto ? "contoh" : null));
+      } catch (e) { return demoGagalRaw(500, "Contoh hasil gagal dibuat di browser demo."); } finally { if (sementara) URL.revokeObjectURL(sementara); }
+    }
+    if (route === "brosur/generate") {
+      return demoBrosurUnduh(d, body, { nama: d.settings.NAMA_TRAVEL || "Travel", hp: d.settings.ADMIN_PHONE || "", wilayah: null }, null);
+    }
+    if (route === "agen/" + (seg[1] || "") + "/foto" && seg[2] === "foto") return ok({ url: (body && body.url) || "" }, "Foto agen tersimpan.", 201);
+    if (route === "pengaturan/logo") {
+      const url = (body && body.url) || (body && body.logo_url) || "";
+      if (url) { d.settings.LOGO_URL = url; save(d); }
+      return ok({ url: d.settings.LOGO_URL }, "Logo berhasil disimpan.", 201);
+    }
+    if (route === "pengaturan/icon-pwa") {
+      const appKey = (body && body.app) === "jamaah" ? "ICON_JAMAAH_URL" : "ICON_AGENT_URL";
+      const url = (body && body.url) || "";
+      if (url) { d.settings[appKey] = url; save(d); }
+      return ok({ app: body?.app || "agent", url: url }, "Icon tersimpan.", 201);
+    }
+
+    // -- ERP: PENGATURAN --
+    if (route === "pengaturan" && method === "GET") {
+      return ok(Object.entries(d.settings).map(([key, value]) => ({ key, value })));
+    }
+    if (route === "pengaturan" && method === "PUT") {
+      Object.assign(d.settings, body); save(d);
+      return ok({ saved: Object.keys(body).length }, "Pengaturan tersimpan (localStorage).");
+    }
+    // Notifikasi WhatsApp otomatis (paritas GET /api/notifikasi/wa - demo tidak mengirim pesan apa pun)
+    if (route === "notifikasi/wa" && method === "GET") {
+      const EV = [
+        ["booking_baru", "Booking baru dari agen", "admin", true, false], ["login_gagal", "5x gagal login / indikasi brute force", "admin", true, false],
+        ["kuota", "Kuota jamaah 80% / 95% / penuh", "admin", true, false], ["license", "License masa tenggang / baca-saja / ditangguhkan", "admin", true, true],
+        ["komisi_cair", "Komisi dicairkan", "agen", true, false], ["followup_pagi", "Pengingat follow-up prospek (pagi)", "agen", true, true],
+        ["jamaah_bayar", "Jamaah closing membayar / lunas", "agen", true, false], ["downline_baru", "Downline baru terdaftar (ke upline)", "agen", true, false],
+        ["pembayaran_diterima", "Pembayaran diterima", "jamaah", true, false], ["akun_portal", "Akun Portal Jamaah dibuat (cara login)", "jamaah", false, false],
+        ["tagihan", "Pengingat sisa tagihan H-30 / H-7", "jamaah", false, true], ["dokumen", "Pengingat dokumen belum lengkap (mingguan)", "jamaah", false, true],
+        ["h7_berangkat", "Info H-7 keberangkatan", "jamaah", false, true],
+      ];
+      const on = (k, def) => { const v = d.settings["WA_NOTIF_" + k.toUpperCase()]; return v === undefined || v === "" ? def : ["1", "on", "true"].includes(String(v)); };
+      return ok({
+        siap_kirim: false, token_terisi: false, fitur_paket: true, admin_phone_terisi: !!d.settings.ADMIN_PHONE,
+        events: EV.map(([key, label, penerima, def, terjadwal]) => ({ key, label, penerima, default: def, terjadwal, aktif: on(key, def) })),
+        antrean_7_hari: { pending: 0, sent: 0, failed: 0 }, terakhir: [],
+      });
+    }
+
+    // -- UPGRADE (demo - arsitektur SaaS diperlihatkan, tanpa transaksi nyata) --
+    if (route === "upgrade/options") {
+      return ok({
+        current_plan: "starter", quota: { current: d.jamaah.filter((j) => !j.status_void).length, limit: 50, percent: 40, level: "ok" },
+        control_plane_reachable: false,
+        upgrade_targets: [
+          { key: "growth", name: "Growth", price_monthly: 1199000, price_annual: 11990000, jamaah_limit: 100, admin_limit: 10, agent_limit: 200, storage_limit_gb: 10, negotiable: false },
+          { key: "enterprise", name: "Enterprise", price_monthly: 2499000, price_annual: 24990000, jamaah_limit: 200, admin_limit: null, agent_limit: null, storage_limit_gb: 25, negotiable: false },
+          { key: "custom", name: "Custom", price_monthly: 0, price_annual: 0, jamaah_limit: null, negotiable: true },
+        ],
+        note: "upgrade paket & pembayaran dinonaktifkan (butuh koneksi Control Plane).",
+      });
+    }
+    if (route === "upgrade/request" || route === "upgrade/slot-pack" || route === "upgrade/pay") {
+      return fail("Mode demo - transaksi upgrade/pembayaran dinonaktifkan. Berlangganan untuk mencoba alur penuh (kelolaumroh.com).");
+    }
+
+    // -- AGENT PORTAL --
+    if (route === "agent/dashboard") {
+      const byStatus = {};
+      d.prospek.forEach((p) => { (byStatus[p.status_pipeline] = byStatus[p.status_pipeline] || []).push(p); });
+      return ok({
+        kpi: { jamaah_saya: d.peserta.length, komisi: { siap_cair: 8300000, pending: 1400000, sudah_cair: 21600000 } },
+        prospek: { by_status: byStatus, followup_due: d.prospek.filter((p) => p.tgl_followup && p.tgl_followup <= daysAgo(0) && p.status_pipeline === "FOLLOW_UP") },
+        // varian = SummaryController::agent (urut harga naik, + maskapai, durasi, info hotel B-31); harga_mulai = varian termurah
+        jadwal_aktif: d.jadwal.filter((j) => j.status_aktif === "Aktif" && Number(j.kuota) > 0).map((j) => {
+          const varian = demoVarian(d, j.id_jadwal, true);
+          return { ...j, terisi: d.peserta.filter((p) => p.jadwal_id === j.id_jadwal).length, varian, harga_mulai: varian.length ? varian[0].harga : 0, ada_brosur: !!j.link_brosur };
+        }),
+        read_only: false,
+        tier: demoKomisiAgen(d, d.agen[0]) ? { nama: demoKomisiAgen(d, d.agen[0]).nama } : null,
+        kontak: { wa_admin: waAdmin(d) },
+        konten: { bank: d.bank_konten.filter((k) => k.status === "TERBIT").map((k) => ({ id: k.id_media, judul: k.judul, jenis: k.jenis, caption: demoIsiPlaceholder(d, k.caption) })) },
+        // paritas SummaryController::agent `ketentuan` (Pengaturan -> Ketentuan Pembayaran; bawaan 5.000.000 & 30 hari)
+        ketentuan: { dp_minimal: /^\d+$/.test(String(d.settings.DP_MINIMAL ?? "")) ? Number(d.settings.DP_MINIMAL) : 5000000,
+          batas_pelunasan_hari: /^\d+$/.test(String(d.settings.BATAS_PELUNASAN_HARI ?? "")) ? Number(d.settings.BATAS_PELUNASAN_HARI) : 30 },
+      });
+    }
+    if (route === "agent/prospek" && method === "GET") {
+      return ok({ by_status: d.prospek.reduce((m, p) => { (m[p.status_pipeline] = m[p.status_pipeline] || []).push(p); return m; }, {}),
+        followup_due: d.prospek.filter((p) => p.tgl_followup && p.tgl_followup <= daysAgo(0) && p.status_pipeline === "FOLLOW_UP") });
+    }
+    if (route === "agent/prospek" && method === "POST") {
+      const p = { id_prospek: nextId("PRP"), status_pipeline: "NEW", tgl_followup: null, id_agen: "AGN-101", ...body, nama: (body.nama || "").toUpperCase() };
+      d.prospek.push(p); save(d); return ok(p, "Prospek masuk pipeline NEW.", 201);
+    }
+    if (seg[0] === "agent" && seg[1] === "prospek" && method === "PUT") {
+      const p = d.prospek.find((x) => x.id_prospek === seg[2]);
+      if (!p) return fail("Prospek tidak ditemukan.");
+      if (String(p.status_pipeline).startsWith("CLOSED") && body.status_pipeline && !String(body.status_pipeline).startsWith("CLOSED")) {
+        return fail("Prospek yang sudah closed tidak bisa dibuka lagi (buat prospek baru).");
+      }
+      const hist = Array.isArray(p.catatan_histori) ? p.catatan_histori : [];
+      const now = new Date(), pad = (n) => String(n).padStart(2, "0");
+      const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`; // waktu lokal
+      hist.push(`${stamp} - status: ${body.status_pipeline || p.status_pipeline}` + (body.catatan_tambahan ? ` | note: ${body.catatan_tambahan}` : ""));
+      const { catatan_tambahan, ...fields } = body;
+      Object.assign(p, fields, { tgl_followup: fields.tgl_followup || null, catatan_histori: hist }); save(d); return ok(p, "Pipeline diperbarui.");
+    }
+    if (route === "agent/booking") {
+      const nama = (body.nama || "").toUpperCase();
+      if (nama.length < 3) return fail("Nama minimal 3 karakter.");
+      if (!["L", "P"].includes(body.j_kelamin)) return fail("Pilih jenis kelamin jamaah (Laki-laki atau Perempuan).");
+      const jd = d.jadwal.find((x) => x.id_jadwal === body.jadwal_id);
+      if (jd && Number(jd.kuota) <= 0) return fail("Jadwal ini tidak dibuka untuk pendaftaran lewat agen.");
+      const j = { id_jamaah: nextId("JMH"), nama, j_kelamin: body.j_kelamin, no_identitas: body.no_identitas || null, no_hp: body.no_hp, status_dokumen: "Pending", status_void: 0, id_entitas: "PST-01", created_at: new Date().toISOString() };
+      d.jamaah.push(j);
+      // Varian pilihan agen (dashboard sekarang mengirim varian); setor dari katalog varian itu bila ada
+      const kat = d.katalog.find((k) => k.jadwal_id === body.jadwal_id && k.jenis_paket === body.jenis_paket);
+      d.peserta.push({ jadwal_id: body.jadwal_id, jamaah_id: j.id_jamaah, nama, kategori_peserta: "Jamaah Reguler", jenis_paket: kat ? kat.jenis_paket : "VIP *4/*5", harga_jual_riil: body.harga_riil || 0, harga_setor_riil: kat ? Number(kat.harga_setor_std) || 0 : (body.harga_riil || 0) - 3500000, terbayar: 0 });
+      save(d);
+      return ok({ id_jamaah: j.id_jamaah, komisi_split_id: "SPLIT-" + Date.now() }, "Booking demo berhasil (localStorage): jamaah, jadwal, dan komisi tier tercatat.", 201);
+    }
+    if (route === "agent/komisi") {
+      return ok({ siap_cair: 8300000, pending: 1400000, sudah_cair: 21600000, riwayat: [
+        { id_split: "SPLIT-901", jamaah: "AHMAD SULAIMAN", paket: "VIP Okt", nominal: 3000000, status: "Pending", tier: "Tier 1", lunas: true, keterangan: "LUNAS - 2026-09-02" },
+        { id_split: "SPLIT-902", jamaah: "KELUARGA H. ABBAS", paket: "VIP Okt", nominal: 1200000, status: "Pending", lunas: true, keterangan: "LUNAS - 2026-08-28" },
+        { id_split: "SPLIT-903", jamaah: "SITI AMINAH", paket: "Reguler Des", nominal: 400000, status: "Pending", lunas: false, keterangan: "DP - 2026-07-12" },
+        { id_split: "SPLIT-904", jamaah: "NUR HALIMAH", paket: "VIP Okt", nominal: 500000, status: "Cair", lunas: true, keterangan: "Dicairkan 2026-09-01" },
+      ], tier: demoKomisiAgen(d, d.agen[0]) });
+    }
+    if (route === "agent/komisi/cair") return ok({ status: "requested" }, "Demo: pengajuan tercatat - admin memproses dari ERP.");
+    if (route === "agent/tim") {
+      // Paritas SummaryController::agentTim: rekrutan langsung, tanpa pagu (komisi tier)
+      const me = d.agen[0];
+      const members = d.agen.filter((a) => a.id_upline === me.id_agen);
+      return ok({ tier_saya: (demoTier(d, me.id_tier) || {}).nama || null,
+        statistik: { rekrutan: members.length, aktif: members.filter((m) => m.status_akun === "AKTIF").length, closing_bulan_ini: members.length ? 3 : 0 },
+        members: members.map((m) => ({ id_agen: m.id_agen, nama: m.nama, nama_tier: (demoTier(d, m.id_tier) || {}).nama || null,
+          jamaah: 6 + m.nama.length % 5, closing_bulan_ini: m.status_akun === "AKTIF" ? 3 : 0, status_akun: m.status_akun })) });
+    }
+    if (route === "agent/profil/rekening" && method === "GET") {
+      const me = d.agen[0];
+      return ok({ nama_bank: me.nama_bank, no_rekening: me.no_rekening, nama_rekening: me.nama_rekening });
+    }
+    if (route === "agent/profil/rekening" && method === "PUT") {
+      Object.assign(d.agen[0], { nama_bank: body.nama_bank, no_rekening: body.no_rekening, nama_rekening: body.nama_rekening });
+      save(d); return ok(body, "Rekening tersimpan (localStorage).");
+    }
+
+    // -- AGENT: brosur / downline / foto / PIN (DM-5 - semua lokal, tanpa /api) --
+    if (route === "agent/brosur" && method === "POST") {
+      // Paritas BrosurController::generate: kontak agen demo (agen pertama), foto/wilayah sesuai pilihan di Profil
+      const me = d.agen[0] || {};
+      return demoBrosurUnduh(d, body, { nama: me.nama, hp: me.no_hp, wilayah: body.tampilkan_wilayah ? me.wilayah : null },
+        body.tampilkan_foto && me.link_foto ? me.link_foto : null);
+    }
+    if (route === "agent/downline" && method === "POST") {
+      // Paritas AgenController::registerDownline: entitas perekrut, tier aktif terendah
+      const me = d.agen[0] || {};
+      const ent = me.id_entitas || "PST-01";
+      const t = demoTiers(d, ent).filter((x) => x.aktif).pop();
+      if (!t) return fail("Kantor belum mengatur tier agen untuk entitas Anda. Hubungi kantor travel.");
+      if (d.agen.some((a) => a.no_hp === body.no_hp)) return fail("No. WhatsApp sudah terdaftar sebagai agen.");
+      const baru = {
+        id_agen: nextId("AGN"), nama: String(body.nama || "").toUpperCase(), role: demoRoleLama(t.urutan), id_tier: t.id, no_hp: body.no_hp,
+        wilayah: String(body.wilayah || "").toUpperCase(), alamat: "", status_akun: "AKTIF", id_entitas: ent, id_upline: me.id_agen || null,
+      };
+      d.agen.push(baru); save(d);
+      return ok({ id_agen: baru.id_agen, nama: baru.nama, nama_tier: t.nama, role: baru.role },
+        `${baru.nama} terdaftar sebagai ${t.nama}. Kirim nomor WhatsApp dan PIN 6 digit ke rekrutan untuk login.`, 201);
+    }
+    if (route === "agent/profil/foto" && method === "POST") {
+      const url = body.foto instanceof Blob ? await demoFotoAgen(body.foto) : "";
+      if (!url) return fail("Foto tidak dapat dibaca.");
+      d.agen[0] && (d.agen[0].link_foto = url);
+      try { save(d); } catch (e) { return fail("Penyimpanan browser penuh. Klik Reset Demo lalu coba lagi."); }
+      return ok({ link_foto: url }, "Foto profil tersimpan.");
+    }
+    if (route === "agent/profil/pin" && method === "PUT") {
+      if (!body.pin_lama || String(body.pin_lama).length < 6) return fail("PIN lama wajib.");
+      if (!/^\d{6}$/.test(String(body.pin_baru || ""))) return fail("PIN baru harus 6 digit.");
+      if (String(body.pin_baru) === String(body.pin_lama)) return fail("PIN baru harus berbeda dari lama.");
+      d.agen[0] && (d.agen[0].pin = body.pin_baru); save(d);
+      return ok({ token: "demo-token-agent" }, "PIN diperbarui. Sesi diperpanjang.");
+    }
+
+    // -- ERP: STAFF (user) - DM-1 (Pengaturan demo) --
+    if (route === "users" && method === "GET") return ok({ items: d.users });
+    if (route === "users" && method === "POST") {
+      const u = { id_user: nextId("USR"), status_akun: "AKTIF", ...body, nama_lengkap: (body.nama_lengkap || body.nama || "").toUpperCase() };
+      d.users.push(u); save(d); return ok(u, "Staff dibuat.", 201);
+    }
+    if (seg[0] === "users" && seg.length === 2 && method === "PUT") {
+      const u = d.users.find((x) => x.id_user === seg[1]); if (!u) return fail("User tidak ditemukan.");
+      Object.assign(u, body); save(d); return ok(u, "Staff diperbarui.");
+    }
+    if (seg[0] === "users" && seg.length === 2 && method === "DELETE") {
+      d.users = d.users.filter((x) => x.id_user !== seg[1]); save(d); return ok({ deleted: true }, "Staff dinonaktifkan.");
+    }
+    if (seg[0] === "users" && seg[2] === "unlock") {
+      const u = d.users.find((x) => x.id_user === seg[1]); if (u) u.status_akun = "AKTIF"; save(d); return ok(u, "Akun dibuka kembali.");
+    }
+
+    // -- ERP: ENTITAS - DM-1; PO 23 Okt 2026: tipe hanya PUSAT/CABANG + bagian cabang --
+    const entitasRow = (en) => ({ ...en,
+      jumlah_staff: d.users.filter((u) => u.id_entitas === en.id && u.status_akun !== "NONAKTIF").length,
+      jumlah_agen: d.agen.filter((a) => (a.id_entitas || "PST-01") === en.id && a.status_akun === "AKTIF").length,
+      jumlah_penimpa: Object.keys((d.komisi_cabang_jenis || {})[en.id] || {}).length });
+    if (route === "entitas" && method === "GET") return ok({ items: d.entitas.map(entitasRow), total: d.entitas.length });
+    if (route === "entitas" && method === "POST") {
+      const en = { id: nextId("CBG"), status_aktif: "Aktif", tipe_entitas: "CABANG", kedalaman_level: 3, keterangan: body.keterangan || "",
+        nama_entitas: (body.nama_entitas || "Cabang Baru").toUpperCase(), komisi_cabang: Number(body.komisi_cabang) || 0 };
+      d.entitas.push(en); demoTierBawaan(d, en.id); save(d); return ok(en, "Entitas dibuat.", 201);
+    }
+    if (seg[0] === "entitas" && seg.length === 2 && method === "PUT") {
+      const en = d.entitas.find((x) => x.id === seg[1]); if (!en) return fail("Entitas tidak ditemukan.");
+      if (body.nama_entitas) en.nama_entitas = String(body.nama_entitas).toUpperCase();
+      if ("keterangan" in body) en.keterangan = body.keterangan;
+      if ("komisi_cabang" in body) {
+        const baru = Number(String(body.komisi_cabang).replace(/\D/g, "")) || 0;
+        const konflik = demoMelebihiBatas(d, en.id, baru, {});
+        if (konflik.length && !body.turunkan_tier) return demoTolakKonflik(konflik);
+        demoTurunkan(d, konflik);
+        en.komisi_cabang = baru;
+      }
+      save(d); return ok(en, "Entitas diperbarui.");
+    }
+    if (seg[0] === "entitas" && seg[2] === "toggle") {
+      const en = d.entitas.find((x) => x.id === seg[1]);
+      if (en) en.status_aktif = en.status_aktif === "Aktif" ? "Nonaktif" : "Aktif";
+      let agenOff = 0;
+      if (en && en.status_aktif === "Nonaktif") d.agen.forEach((a) => { if ((a.id_entitas || "PST-01") === en.id && a.status_akun === "AKTIF") { a.status_akun = "NONAKTIF"; agenOff++; } });
+      save(d);
+      return ok({ ...en, locked_agen: agenOff }, en && en.status_aktif === "Nonaktif"
+        ? `Entitas dinonaktifkan: staf dan ${agenOff} agen ikut nonaktif. Komisi Pending agen tetap bisa dicairkan Pusat setelah jamaahnya lunas.`
+        : "Entitas diaktifkan kembali.");
+    }
+    if (seg[0] === "entitas" && seg[2] === "komisi-paket" && method === "GET") {
+      // Paritas EntitasController::komisiPaket (per jenis paket, 26 Okt 2026)
+      const en = d.entitas.find((x) => x.id === seg[1]); if (!en || en.tipe_entitas !== "CABANG") return fail("Cabang tidak ditemukan.");
+      const penimpa = (d.komisi_cabang_jenis || {})[en.id] || {};
+      const tiers = demoTiers(d, en.id).filter((t) => t.aktif);
+      return ok({ entitas: { id: en.id, nama: en.nama_entitas, komisi_cabang: Number(en.komisi_cabang) || 0 },
+        items: Object.entries(demoJenisPaket(d)).map(([jenis, margin]) => {
+          const p = jenis in penimpa ? penimpa[jenis] : null;
+          const efektif = p ?? (Number(en.komisi_cabang) || 0);
+          const nilai = tiers.map((t) => demoNominalTier(t, jenis)).filter((n) => n !== null);
+          return { jenis_paket: jenis, margin_terkecil: margin, penimpa: p, efektif, melebihi_margin: margin !== null && efektif > margin,
+            tier_tertinggi: nilai.length ? Math.max(...nilai) : null };
+        }) });
+    }
+    if (seg[0] === "entitas" && seg[2] === "komisi-paket" && method === "PUT") {
+      const per = {};
+      (body.items || []).forEach((it) => { per[it.jenis_paket] = it.nominal === "" || it.nominal == null ? null : Number(String(it.nominal).replace(/\D/g, "")) || 0; });
+      const konflik = demoMelebihiBatas(d, seg[1], null, per);
+      if (konflik.length && !body.turunkan_tier) return demoTolakKonflik(konflik);
+      d.komisi_cabang_jenis = d.komisi_cabang_jenis || {};
+      const map = d.komisi_cabang_jenis[seg[1]] = d.komisi_cabang_jenis[seg[1]] || {};
+      Object.entries(per).forEach(([j, n]) => { if (n === null) delete map[j]; else map[j] = n; });
+      demoTurunkan(d, konflik);
+      save(d);
+      return ok({ diubah: Object.keys(per).length, tier_diturunkan: konflik.length }, konflik.length
+        ? "Batas komisi cabang disimpan, dan komisi tier yang melebihi sudah diturunkan ke batas baru."
+        : "Batas komisi cabang per jenis paket disimpan.");
+    }
+    if (seg[0] === "entitas" && seg[2] === "komisi") {
+      const en = d.entitas.find((x) => x.id === seg[1]); if (!en || en.tipe_entitas !== "CABANG") return fail("Cabang tidak ditemukan.");
+      const riwayat = en.id === "CAB-02" ? [
+        { id_split: "SPLIT-951", jamaah: "HJ. MAEMUNAH", paket: "Umrah VIP Oktober", margin: 3500000, nominal: 1500000, status: "Pending", tanggal: "2026-09-04" },
+        { id_split: "SPLIT-948", jamaah: "DEDI KURNIAWAN", paket: "Umrah Reguler Desember", margin: 2800000, nominal: 800000, status: "Cair", tanggal: "2026-08-21" },
+      ] : [];
+      const cair = riwayat.filter((r) => r.status === "Cair").reduce((a, r) => a + r.nominal, 0);
+      const pend = riwayat.filter((r) => r.status === "Pending").reduce((a, r) => a + r.nominal, 0);
+      return ok({ entitas: { id: en.id, nama: en.nama_entitas, komisi_cabang: en.komisi_cabang || 0 },
+        saldo: { siap_cair: pend, pending: 0, sudah_cair: cair }, riwayat });
+    }
+    if (seg[0] === "entitas" && seg[2] === "cairkan") {
+      return ok({ transaksi_dicairkan: 1, nominal_dicairkan: 1500000, saldo_setelah: { siap_cair: 0, pending: 0, sudah_cair: 2300000 } },
+        "Demo: 1 transaksi, Rp 1.500.000 dicairkan untuk cabang.");
+    }
+
+    // -- ERP: P&L per jadwal - DM-1 --
+    if (seg[0] === "jadwal" && seg[2] === "profit") {
+      const jd = d.jadwal.find((x) => x.id_jadwal === seg[1]) || d.jadwal[0] || { nama_paket: "Demo" };
+      const pes = d.peserta.filter((p) => p.jadwal_id === jd.id_jadwal);
+      const totalTagihan = pes.reduce((a, p) => a + (p.harga_jual_riil || 0), 0);
+      const totalMasuk = pes.reduce((a, p) => a + (p.terbayar || 0), 0);
+      const totalHpp = pes.reduce((a, p) => a + (p.harga_setor_riil || 0), 0);
+      return ok({ nama_paket: jd.nama_paket || "Demo", total_peserta: pes.length,
+        total_tagihan: totalTagihan, total_masuk: totalMasuk, piutang: Math.max(0, totalTagihan - totalMasuk),
+        total_hpp: totalHpp, total_komisi_keluar: 0, total_komisi_alokasi: 0 });
+    }
+
+    // -- ERP: Prospek agregat - DM-1 --
+    if (route === "prospek/agregat") {
+      const by = {}; d.prospek.forEach((p) => { by[p.status_pipeline] = (by[p.status_pipeline] || 0) + 1; });
+      const won = by["CLOSED/WON"] || 0, lost = by["CLOSED_LOST"] || 0;
+      const total = d.prospek.length || 1;
+      const perAgen = d.agen.map((a) => {
+        const mine = d.prospek.filter((p) => p.id_agen === a.id_agen);
+        const w = mine.filter((p) => p.status_pipeline === "CLOSED/WON").length;
+        return { nama: a.nama, role: a.role, total_leads: mine.length, total_won: w,
+          leads_bulan_ini: mine.length, won_bulan_ini: w, win_rate: mine.length ? Math.round(w / mine.length * 100) : 0 };
+      });
+      return ok({ funnel: by, conversion_rate: Math.round(won / total * 100), lost,
+        followup_due: d.prospek.filter((p) => p.tgl_followup && p.tgl_followup <= daysAgo(0) && p.status_pipeline === "FOLLOW_UP")
+          .map((p) => ({ nama: p.nama, nama_agen: (d.agen.find((a) => a.id_agen === p.id_agen) || {}).nama || "-", hari: "lewat" })),
+        per_agen: perAgen });
+    }
+
+    // -- ERP: Performa - DM-1 --
+    if (route === "performa") {
+      const aktif = d.jamaah.filter((j) => !j.status_void);
+      const closingAgen = d.agen.map((a) => ({ nama: a.nama, role: a.role, closing: d.prospek.filter((p) => p.id_agen === a.id_agen && p.status_pipeline === "CLOSED/WON").length }))
+        .sort((a, b) => b.closing - a.closing);
+      return ok({ mode: "pusat",
+        vitalitas_cabang: d.entitas.map((en) => ({ entitas: en.nama_entitas, aktif: en.status_aktif === "Aktif" ? 6 : 0, pasif: en.status_aktif === "Aktif" ? 1 : 4 })),
+        distribusi_paket: d.jadwal.map((j) => ({ paket: j.nama_paket, n: d.peserta.filter((p) => p.jadwal_id === j.id_jadwal).length })),
+        occupancy: d.jadwal.map((j) => { const t = d.peserta.filter((p) => p.jadwal_id === j.id_jadwal).length + j.blokir_kuota;
+          return { jadwal: j.nama_paket, tgl: j.tgl_keberangkatan, persen: Math.round(t / j.kuota * 100), terpakai: t, sisa: Math.max(0, j.kuota - t) }; }),
+        top_agen: closingAgen, agen_pasif: closingAgen.filter((a) => a.closing === 0).map((a) => ({ nama: a.nama, terakhir_closing: null, wa_link: "https://wa.me/6282335616777" })) });
+    }
+
+    // -- ERP: INTEGRASI (Gemini/Fonnte) - DM-1 (demo tanpa koneksi) --
+    if (route === "integrations/gemini/test") return ok({}, "Mode demo - pengujian koneksi Gemini dinonaktifkan. Isi API key di versi penuh.");
+    if (route === "integrations/gemini/models") return ok([{ id: "gemini-1.5-flash", displayName: "Gemini 1.5 Flash" }, { id: "gemini-1.5-pro", displayName: "Gemini 1.5 Pro" }]);
+    if (route === "integrations/fonnte/test") return ok({}, "Mode demo - pengiriman WhatsApp dinonaktifkan. Isi token Fonnte di versi penuh.");
+
+    // -- Push notification (paritas PushController, 24 Okt 2026). Demo tidak punya server push: portal hanya menampilkan
+    //    contoh notifikasi lokal (ku-push.js), ERP memakai jumlah perangkat fiktif dan pengumuman tidak dikirim ke mana pun. --
+    if (route === "agent/push" || route === "jamaah-portal/push") return ok({ kunci_publik: "", perangkat: 0, demo: true });
+    if (/^(agent|jamaah-portal)\/push\/(langganan|hapus|uji)$/.test(route)) return ok({ perangkat: 0, demo: true }, "notifikasi hanya contoh di perangkat ini.");
+    if (route === "push" && method === "GET") {
+      const on = (k) => { const v = d.settings["PUSH_NOTIF_" + k.toUpperCase()]; return v === undefined || v === "" || ["1", "on", "true"].includes(String(v)); };
+      const EV = [["komisi_cair", "Komisi dicairkan", "agen", false], ["followup_pagi", "Pengingat follow-up prospek (pagi)", "agen", true],
+        ["jamaah_bayar", "Jamaah closing membayar atau lunas", "agen", false], ["downline_baru", "Downline baru terdaftar (ke upline)", "agen", false],
+        ["pembayaran_diterima", "Pembayaran diterima", "jamaah", false], ["tagihan", "Pengingat sisa tagihan H-30 dan H-7", "jamaah", true],
+        ["dokumen", "Pengingat dokumen belum lengkap (mingguan)", "jamaah", true], ["h7_berangkat", "Info H-7 keberangkatan", "jamaah", true]];
+      const riwayat = d.pengumuman || [];
+      return ok({
+        events: EV.map(([key, label, penerima, terjadwal]) => ({ key, label, penerima, terjadwal, aktif: on(key) })),
+        agen: { orang: 3, perangkat: 4 }, jamaah: { orang: 2, perangkat: 2 },
+        antrean_7_hari: { pending: 0, sent: 6 + riwayat.reduce((a, p) => a + p.penerima, 0), failed: 0, no_device: 0 },
+        pengumuman: riwayat,
+      });
+    }
+    if (route === "push/pengumuman" && method === "POST") {
+      const aud = String(body.audiens || "SEMUA").toUpperCase();
+      if (!["AGEN", "JAMAAH", "SEMUA"].includes(aud)) return fail("Penerima harus agen, jamaah, atau semua.");
+      const penerima = aud === "AGEN" ? 3 : aud === "JAMAAH" ? 2 : 5;
+      if (body.dry_run) return ok({ penerima });
+      const judul = String(body.judul || "").trim(), isi = String(body.isi || "").trim();
+      if (!judul || judul.length > 60) return fail("Judul wajib diisi, maksimal 60 karakter.");
+      if (!isi || isi.length > 200) return fail("Isi wajib diisi, maksimal 200 karakter.");
+      d.pengumuman = [{ judul, isi, created_at: new Date().toISOString(), audiens: aud === "SEMUA" ? "AGEN,JAMAAH" : aud, penerima, terkirim: penerima, antre: 0 }]
+        .concat(d.pengumuman || []).slice(0, 10);
+      save(d);
+      return ok({ batch_id: "PSH-DEMO", penerima }, `pengumuman tercatat untuk ${penerima} penerima, tetapi tidak dikirim ke ponsel mana pun.`);
+    }
+    // -- JAMAAH: feedback pasca-umrah (paritas FeedbackController::kirim, 23 Okt 2026) --
+    if (route === "jamaah-portal/feedback") {
+      const j = d.jamaah[0];
+      const rating = Number(body.rating);
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) return fail("Pilih penilaian 1 sampai 5 bintang.");
+      const komentar = String(body.komentar || "").trim();
+      if (komentar.length > 1000) return fail("Komentar maksimal 1000 karakter.");
+      const trip = demoPerjalanan(d, j).find((t) => t.jadwal_id === body.jadwal_id);
+      if (!trip) return fail("Perjalanan tidak ditemukan.");
+      if (!trip.selesai) return fail("Penilaian bisa diberikan setelah perjalanan selesai.");
+      if (d.feedback.some((f) => f.jamaah_id === j.id_jamaah && f.jadwal_id === trip.jadwal_id)) return ok({ rating, baru: false }, "Penilaian untuk perjalanan ini sudah tercatat. Terima kasih.");
+      d.feedback.unshift({ tanggal: new Date().toISOString(), jamaah_id: j.id_jamaah, nama_jamaah: j.nama, jadwal_id: trip.jadwal_id,
+        nama_paket: trip.nama_paket, jenis_paket: trip.jenis_paket, rating, komentar, id_entitas: "PST-01" });
+      save(d); return ok({ rating, baru: true }, "Terima kasih atas penilaian Anda.");
+    }
+
+    // -- ERP: Feedback jamaah (paritas FeedbackController::list/export) --
+    if (route === "feedback" && method === "GET") {
+      const items = d.feedback.filter((f) => f.jadwal_id);
+      const per = {};
+      items.forEach((f) => { const p = per[f.jadwal_id] = per[f.jadwal_id] || { jadwal_id: f.jadwal_id, nama_paket: f.nama_paket, jumlah: 0, total: 0 }; p.jumlah++; p.total += f.rating; });
+      const total = items.reduce((a, f) => a + f.rating, 0);
+      return ok({ items, cakupan: "semua", ringkasan: { jumlah: items.length, rata_rata: items.length ? Math.round(total / items.length * 10) / 10 : null,
+        per_paket: Object.values(per).map((p) => ({ jadwal_id: p.jadwal_id, nama_paket: p.nama_paket, jumlah: p.jumlah, rata_rata: Math.round(p.total / p.jumlah * 10) / 10 })).sort((a, b) => b.jumlah - a.jumlah) } });
+    }
+    if (route === "feedback/export") {
+      const sel = (v) => { const s = String(v ?? ""); const t = /^[=+\-@]/.test(s) ? "'" + s : s; return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+      const csv = "\uFEFF" + [["Tanggal", "ID Jamaah", "Nama Jamaah", "ID Jadwal", "Paket", "Jenis Paket", "Rating", "Komentar", "Entitas"].join(",")]
+        .concat(d.feedback.filter((f) => f.jadwal_id).map((f) => [String(f.tanggal).slice(0, 16), f.jamaah_id, f.nama_jamaah, f.jadwal_id, f.nama_paket, f.jenis_paket, f.rating, f.komentar, f.id_entitas].map(sel).join(","))).join("\n");
+      return new Response(new Blob([csv], { type: "text/csv" }), { status: 200, headers: { "Content-Disposition": 'attachment; filename="Feedback_Jamaah_demo.csv"' } });
+    }
+
+    // -- ERP: Konten Portal - Bank Konten (paritas BankKontenController) --
+    if (seg[0] === "konten" && (seg[1] === "bank" || seg[1] === "bank-urutan")) {
+      const list = d.bank_konten;
+      const pratinjau = (c) => demoIsiPlaceholder(d, c);
+      const valid = (k) => !k.judul || !k.caption ? "Judul dan caption wajib diisi." : k.judul.length > 80 ? "Judul maksimal 80 karakter."
+        : k.caption.length > 1000 ? "Caption maksimal 1000 karakter." : !["PROMO", "TESTIMONI", "EVENT", "EDUKASI"].includes(k.jenis) ? "Jenis tidak valid."
+        : !["DRAFT", "TERBIT"].includes(k.status) ? "Status tidak valid." : null;
+      const rapikan = (k) => ({ ...k, judul: String(k.judul || "").replace(/\s+/g, " ").trim(), caption: String(k.caption || "").trim(), jenis: String(k.jenis || "PROMO").toUpperCase(), status: String(k.status || "DRAFT").toUpperCase() });
+      if (seg[1] === "bank-urutan") {
+        const ids = body.ids || [];
+        if (ids.length !== list.length || ids.some((id) => !list.find((k) => k.id_media === id))) return fail("Urutan tidak valid: kirim semua ID caption tanpa duplikat.");
+        d.bank_konten = ids.map((id, i) => ({ ...list.find((k) => k.id_media === id), urutan: i + 1 }));
+        save(d); return ok(null, "Urutan disimpan.");
+      }
+      if (method === "GET") {
+        const nilai = demoNilaiPlaceholder(d);
+        return ok({ items: list.map((k) => ({ ...k, pratinjau: pratinjau(k.caption) })),
+          placeholder: { "{NAMA_TRAVEL}": nilai.nama, "{DP_MINIMAL}": nilai.dp, "{BATAS_PELUNASAN}": nilai.batas } });
+      }
+      if (method === "POST") {
+        const k = rapikan({ ...body, id_media: nextId("MED"), urutan: list.length + 1, diubah_oleh: "demo", diubah_pada: new Date().toISOString() });
+        const g = valid(k); if (g) return fail(g);
+        list.push(k); save(d); return ok(k, "Caption disimpan.", 201);
+      }
+      const k = list.find((x) => x.id_media === seg[2]);
+      if (!k) return fail("Konten tidak ditemukan.");
+      if (method === "PUT") {
+        const baru = rapikan({ ...k, ...body, diubah_pada: new Date().toISOString() });
+        const g = valid(baru); if (g) return fail(g);
+        Object.assign(k, baru); save(d); return ok(k, "Caption diperbarui.");
+      }
+      if (method === "DELETE") { d.bank_konten = list.filter((x) => x !== k); save(d); return ok(null, "Caption dihapus."); }
+    }
+
+    // -- JAMAAH PORTAL --
+    if (route === "jamaah-portal/dashboard") {
+      const j = d.jamaah[0];
+      const pes = d.peserta.find((p) => p.jamaah_id === j.id_jamaah) || {};
+      const total = pes.harga_jual_riil || 38500000;
+      const dibayar = pes.terbayar || 10000000;
+      const pct = Math.min(100, Math.round(dibayar / total * 100));
+      return ok({
+        // Paritas SummaryController::jamaah (tenant)
+        profil: { id_jamaah: j.id_jamaah, nama: j.nama, no_paspor: j.no_paspor || "X9012454", status_dokumen: j.status_dokumen || "Lengkap",
+          no_identitas_masked: "3204********0021", no_hp: j.no_hp || "081233445566", paspor_warning: false },
+        perjalanan: { paket: (d.jadwal.find((x) => x.id_jadwal === pes.jadwal_id) || {}).nama_paket || "Umrah VIP Oktober",
+          countdown: { hari: 28, tanggal: "2026-10-12" },
+          logistik: { koper_bagasi: true, koper_kabin: true, ihram_mukena: false, tas_paspor: false, batik: false, buku_doa: true } },
+        keuangan: { harga_paket: total, total_dibayar: dibayar, sisa: total - dibayar, persen_lunas: pct, lunas: pct >= 100,
+          riwayat: d.pembayaran.filter((p) => p.jamaah_id === j.id_jamaah).map((p) => ({ ...p })),
+          rekening_resmi: (d.settings.REKENING_BANK && d.settings.REKENING_NOMOR && d.settings.REKENING_NAMA)
+            ? { bank: d.settings.REKENING_BANK, nomor: d.settings.REKENING_NOMOR, nama: d.settings.REKENING_NAMA } : null },
+        kontak: { wa_admin: waAdmin(d) },
+        feedback: { pending: (() => { const t = demoPerjalanan(d, j).filter((x) => x.selesai && !d.feedback.some((f) => f.jamaah_id === j.id_jamaah && f.jadwal_id === x.jadwal_id)).sort((a, b) => String(b.tgl_pulang).localeCompare(String(a.tgl_pulang)))[0];
+          return t ? { jadwal_id: t.jadwal_id, nama_paket: t.nama_paket, jenis_paket: t.jenis_paket } : null; })() },
+      });
+    }
+
+    // -- Fallback --
+    console.warn("[DemoShim] unhandled:", method, path, "-> empty success");
+    return ok([], "Demo: endpoint tidak disimulasikan penuh.");
+  }
+
+  // -------------------------------------------------------------
+  // Build KU interface (identik dengan ku-tenant-api.js)
+  // -------------------------------------------------------------
+  // Lewati undefined/null/"": URLSearchParams({ search: undefined }) menghasilkan "search=undefined"
+  // sehingga daftar tersaring kata "undefined" (daftar jamaah ERP kosong - 12 Okt 2026).
+  const qs = (params) => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(params || {})) {
+      if (v !== undefined && v !== null && v !== "") p.append(k, v);
+    }
+    const s = p.toString();
+    return s ? "?" + s : "";
+  };
+  const api = (app) => ({
+    login: (credentials) => request(app, "POST", "/auth/login", { app, ...credentials }),
+    logout: () => request(app, "POST", "/auth/logout"),
+    me: () => request(app, "GET", "/auth/me"), // paritas ku-tenant-api.js (header/sidebar ERP)
+    // Akun saya & persiapan travel (27 Okt 2026): akun demo dipakai bersama, jadi kata sandinya tidak bisa diganti;
+    // persiapan dianggap beres supaya dashboard demo tidak menampilkan kartu persiapan
+    gantiPassword: async () => fail("kata sandi akun demo tidak bisa diganti. Di aplikasi travel Anda, menu ini mengganti kata sandi dan mengeluarkan sesi di perangkat lain."),
+    onboarding: async () => ok({ peran: "OWNER", langkah: [], jumlah: 0, beres: 0, semua_beres: true, ditutup: true, fitur_at: null }),
+    onboardingAksi: async () => fail("tidak disimpan."),
+
+    listJamaah: (params) => request(app, "GET", "/jamaah" + qs(params)),
+    getJamaah: (id) => request(app, "GET", "/jamaah/" + id),
+    createJamaah: (data) => request(app, "POST", "/jamaah", data),
+    updateJamaah: (id, data) => request(app, "PUT", "/jamaah/" + id, data),
+    listDokumen: (jamaahId) => request(app, "GET", `/jamaah/${jamaahId}/dokumen`),
+    uploadDokumen: (jamaahId, docType, file) => request(app, "POST", `/jamaah/${jamaahId}/dokumen`, { doc_type: docType }),
+    importJamaah: () => request(app, "POST", "/jamaah/import"),
+    importTemplate: () => request(app, "GET", "/jamaah/import/template", undefined, { raw: true }),
+
+    listJadwal: (params) => request(app, "GET", "/jadwal" + qs(params)),
+    createJadwal: (data) => request(app, "POST", "/jadwal", data),
+    updateJadwal: (id, data) => request(app, "PUT", "/jadwal/" + id, data),
+    plotPeserta: (jadwalId, data) => request(app, "POST", `/jadwal/${jadwalId}/plot`, data),
+    listPeserta: (jadwalId) => request(app, "GET", `/jadwal/${jadwalId}/peserta`),
+    updateLogistik: (jadwalId, data) => request(app, "PUT", `/jadwal/${jadwalId}/logistik`, data),
+    movePeserta: (jadwalId, data) => request(app, "POST", `/jadwal/${jadwalId}/move`, data),
+    cancelPeserta: (jadwalId, data) => request(app, "POST", `/jadwal/${jadwalId}/cancel`, data),
+    manifestSiskopatuh: (jadwalId) => request(app, "GET", `/jadwal/${jadwalId}/manifest/siskopatuh`),
+    manifestVisa: (jadwalId) => request(app, "GET", `/jadwal/${jadwalId}/manifest/visa`, undefined, { raw: true }),
+
+    listKatalog: (params) => request(app, "GET", "/katalog" + qs(params)),
+    createKatalog: (data) => request(app, "POST", "/katalog", data),
+    updateKatalog: (id, data) => request(app, "PUT", "/katalog/" + id, data),
+    deleteKatalog: (id) => request(app, "DELETE", "/katalog/" + id),
+
+    // Katalog Hotel (B-31, 24 Okt 2026): nama & signature sama dengan ku-tenant-api.js; foto di demo hanya menampilkan pesan
+    hotelList: () => request(app, "GET", "/hotel"),
+    hotelCreate: (data) => request(app, "POST", "/hotel", data),
+    hotelUpdate: (id, data) => request(app, "PUT", `/hotel/${id}`, data),
+    hotelDelete: (id) => request(app, "DELETE", `/hotel/${id}`),
+    hotelFoto: (id, file) => request(app, "POST", `/hotel/${id}/foto`, {}),
+
+    listPembayaran: (params) => request(app, "GET", "/pembayaran" + qs(params)),
+    kuitansiPdf: (idBayar) => request(app, "GET", `/pembayaran/${idBayar}/kuitansi`, undefined, { raw: true }),
+    exportCsv: (kind) => request(app, "GET", `/export/${kind}`, undefined, { raw: true }),
+    createPembayaran: (data) => request(app, "POST", "/pembayaran", data),
+    deletePembayaran: (id) => request(app, "DELETE", "/pembayaran/" + id),
+    pembayaranSummary: () => request(app, "GET", "/pembayaran/summary"),
+
+    listAgen: (params) => request(app, "GET", "/agen" + qs(params)),
+    createAgen: (data) => request(app, "POST", "/agen", data),
+    updateAgen: (id, data) => request(app, "PUT", "/agen/" + id, data),
+    toggleAgen: (id) => request(app, "POST", `/agen/${id}/toggle`),
+    tabunganAgen: (id) => request(app, "GET", `/agen/${id}/tabungan`),
+    cairkanAgen: (id) => request(app, "POST", `/agen/${id}/cairkan`),
+    genealogy: () => request(app, "GET", "/agen/genealogy"),
+
+    ocrKtp: (image) => request(app, "POST", "/ocr/ktp", { image }),
+    ocrPaspor: (image) => request(app, "POST", "/ocr/paspor", { image }),
+    ocrMode: () => request(app, "GET", "/ocr/mode"),
+    ocrMrz: (teks) => request(app, "POST", "/ocr/mrz", { teks }),
+    ocrKtpTeks: (teks) => request(app, "POST", "/ocr/ktp-teks", { teks }),
+    generateBrosur: (data) => request(app, "POST", "/brosur/generate", data, { raw: true }),
+    uploadBrosur: (target, file, area) => request(app, "POST", "/brosur/upload", { ...target, area: area ?? "", file }),
+    ubahBrosur: (jenis, id, area) => request(app, "PUT", `/brosur/${jenis}/${encodeURIComponent(id)}`, { area: area ?? "" }),
+    hapusBrosur: (jenis, id) => request(app, "DELETE", `/brosur/${jenis}/${encodeURIComponent(id)}`),
+    pratinjauBrosur: (target, file, area, opsi = {}) => request(app, "POST", "/brosur/pratinjau",
+      { ...(target || {}), file: file || null, area: area ?? "", foto: !!opsi.foto, wilayah: !!opsi.wilayah }, { raw: true }),
+    uploadAgenFoto: (idAgen) => request(app, "POST", `/agen/${idAgen}/foto`),
+    uploadLogo: () => request(app, "POST", "/pengaturan/logo"),
+    uploadIconPwa: (appIcon) => request(app, "POST", "/pengaturan/icon-pwa", { app: appIcon }),
+
+    getSettings: () => request(app, "GET", "/pengaturan"),
+    updateSettings: (data) => request(app, "PUT", "/pengaturan", data),
+    waNotif: () => request(app, "GET", "/notifikasi/wa"),
+    pushRingkasan: () => request(app, "GET", "/push"),
+    pushPengumuman: (data) => request(app, "POST", "/push/pengumuman", data),
+    feedback: (data) => request(app, "POST", "/jamaah-portal/feedback", data),
+
+    dashboardSummary: () => request(app, "GET", "/dashboard/summary"),
+    prospekAgregat: () => request(app, "GET", "/prospek/agregat"),
+    performa: (periode) => request(app, "GET", "/performa" + qs({ periode })),
+    jadwalProfit: (jadwalId, diskon) => request(app, "GET", `/jadwal/${jadwalId}/profit` + qs({ diskon })),
+    listUsers: () => request(app, "GET", "/users"),
+    createUser: (data) => request(app, "POST", "/users", data),
+    updateUser: (id, data) => request(app, "PUT", "/users/" + id, data),
+    deleteUser: (id) => request(app, "DELETE", "/users/" + id),
+    unlockUser: (id) => request(app, "POST", `/users/${id}/unlock`),
+    listEntitas: () => request(app, "GET", "/entitas"),
+    createEntitas: (data) => request(app, "POST", "/entitas", data),
+    updateEntitas: (id, data) => request(app, "PUT", "/entitas/" + id, data),
+    toggleEntitas: (id) => request(app, "POST", `/entitas/${id}/toggle`),
+    komisiPaketEntitas: (id) => request(app, "GET", `/entitas/${id}/komisi-paket`),
+    simpanKomisiPaketEntitas: (id, items, turunkan) => request(app, "PUT", `/entitas/${id}/komisi-paket`, { items, turunkan_tier: !!turunkan }),
+    komisiTier: (entitas) => request(app, "GET", "/komisi-tier" + (entitas ? "?entitas=" + encodeURIComponent(entitas) : "")),
+    simpanKomisiTier: (entitas, tiers) => request(app, "PUT", `/komisi-tier/${entitas}`, { tiers }),
+    komisiEntitas: (id) => request(app, "GET", `/entitas/${id}/komisi`),
+    cairkanEntitas: (id) => request(app, "POST", `/entitas/${id}/cairkan`),
+    feedbackList: () => request(app, "GET", "/feedback"),
+    feedbackExport: () => request(app, "GET", "/feedback/export", undefined, { raw: true }),
+    kontenBankList: () => request(app, "GET", "/konten/bank"),
+    kontenBankCreate: (data) => request(app, "POST", "/konten/bank", data),
+    kontenBankUpdate: (id, data) => request(app, "PUT", `/konten/bank/${id}`, data),
+    kontenBankDelete: (id) => request(app, "DELETE", `/konten/bank/${id}`),
+    kontenBankUrutan: (ids) => request(app, "PUT", "/konten/bank-urutan", { ids }),
+    testGemini: (key, model) => request(app, "POST", "/integrations/gemini/test", { key, model }),
+    geminiModels: (key) => request(app, "POST", "/integrations/gemini/models", { key }),
+    testFonnte: () => request(app, "POST", "/integrations/fonnte/test"),
+    upgradeOptions: () => request(app, "GET", "/upgrade/options"),
+    upgradeRequest: (targetPlan, note) => request(app, "POST", "/upgrade/request", { target_plan: targetPlan, note }),
+    slotPackOrder: (slotQty) => request(app, "POST", "/upgrade/slot-pack", { slot_qty: slotQty }),
+    // Harga slot contoh (Growth) untuk modal Slot Pack - Tagihan & Langganan tidak ada di demo
+    langganan: async () => ({ success: true, data: { subscription: { plan_key: "growth", plan_name: "Growth", slot_price: 10000 }, invoices: [] } }),
+    licenseSyncNow: async () => ({ success: true, message: "Mode demo - license contoh selalu aktif.", license: { valid: true, mode: "full", jamaah_limit: 50, in_grace: false } }),
+    upgradePay: (targetPlan, cycle) => request(app, "POST", "/upgrade/pay", { target_plan: targetPlan, ...(cycle ? { billing_cycle: cycle } : {}) }),
+  });
+
+  return {
+    erp: api("erp"),
+    agent: api("agent"),
+    jamaah: api("jamaah"),
+
+    agentProspek: {
+      list: () => request("agent", "GET", "/agent/prospek"),
+      create: (data) => request("agent", "POST", "/agent/prospek", data),
+      update: (id, data) => request("agent", "PUT", "/agent/prospek/" + id, data),
+    },
+    agentBooking: (data) => request("agent", "POST", "/agent/booking", data),
+    agentDashboard: () => request("agent", "GET", "/agent/dashboard"),
+    agentKomisi: () => request("agent", "GET", "/agent/komisi"),
+    agentKomisiCair: () => request("agent", "POST", "/agent/komisi/cair"),
+    agentTim: () => request("agent", "GET", "/agent/tim"),
+    agentBrosur: (data) => request("agent", "POST", "/agent/brosur", data, { raw: true }),
+    agentDownline: (data) => request("agent", "POST", "/agent/downline", data),
+    agentFoto: (blob) => request("agent", "POST", "/agent/profil/foto", { foto: blob }),
+    agentGantiPin: (pinLama, pinBaru) => request("agent", "PUT", "/agent/profil/pin", { pin_lama: pinLama, pin_baru: pinBaru }),
+    agentRekeningGet: () => request("agent", "GET", "/agent/profil/rekening"),
+    agentRekeningPut: (data) => request("agent", "PUT", "/agent/profil/rekening", data),
+
+    jamaahDashboard: () => request("jamaah", "GET", "/jamaah-portal/dashboard"),
+    jamaahFeedback: (data) => request("jamaah", "POST", "/jamaah-portal/feedback", data),
+    // Push notification perangkat ini (B-01, 24 Okt 2026) - dipakai /assets/ku-push.js
+    agentPush: {
+      status: () => request("agent", "GET", "/agent/push"),
+      langganan: (sub) => request("agent", "POST", "/agent/push/langganan", sub),
+      hapus: (endpoint) => request("agent", "POST", "/agent/push/hapus", { endpoint }),
+      uji: () => request("agent", "POST", "/agent/push/uji", {}),
+    },
+    jamaahPush: {
+      status: () => request("jamaah", "GET", "/jamaah-portal/push"),
+      langganan: (sub) => request("jamaah", "POST", "/jamaah-portal/push/langganan", sub),
+      hapus: (endpoint) => request("jamaah", "POST", "/jamaah-portal/push/hapus", { endpoint }),
+      uji: () => request("jamaah", "POST", "/jamaah-portal/push/uji", {}),
+    },
+    jamaahKuitansiPdf: async () => new Response(
+      new Blob(["%PDF-1.4\n% Demo KelolaUmroh - kuitansi contoh (mode demo tanpa server)."], { type: "application/pdf" }),
+      { status: 200 }
+    ),
+
+    publicJadwal: () => request("erp", "GET", "/public/jadwal"),
+    branding: () => request("erp", "GET", "/tenant/branding"),
+    // Status hidup (paritas GET /api/health publik) dan detail license (paritas GET /api/license/status, 29 Okt 2026)
+    health: async () => ({ status: "ok", license: { valid: true, mode: "full", in_grace: false } }),
+    licenseStatus: async () => ({ success: true, data: { valid: true, mode: "full", in_grace: false, plan_key: "growth", jamaah_limit: 50, days_remaining: 6,
+      expires_at: new Date(Date.now() + 6 * 86400000).toISOString(), last_synced_at: new Date(Date.now() - 3600000).toISOString() } }),
+
+    token, setToken, clearToken,
+    requireAuth(app) {
+      if (!token(app)) { setToken(app, "demo-token-ummu-aisyah"); }
+    },
+
+    // Demo-only
+    demoReset: () => window.KU_demoReset(),
+    demoIsSeeded: () => !!_sGet(DB_KEY),
+  };
+})();
+
+</script>

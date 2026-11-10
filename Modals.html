@@ -1,0 +1,904 @@
+  <div id="modal-jamaah" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-4 backdrop-blur-sm md:p-6" onclick="if(event.target===this)closeModal('modal-jamaah')">
+    <div class="modal-card max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream shadow-innerhl">
+
+        <!-- Header -->
+        <div class="flex items-start justify-between border-b border-hairline px-7 pt-6 pb-4">
+          <div>
+            <h3 class="font-display text-xl font-medium" id="jm-modal-title">Tambah Jamaah</h3>
+            <p class="text-[11px] text-inksoft">Lengkapi identitas KTP dan dokumen paspor jamaah</p>
+          </div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-jamaah')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+
+        <!-- === MODE CHOOSE === -->
+          <div id="jm-choose" class="px-8 py-10">
+            <h4 class="text-center font-display text-xl font-medium text-ink">Pilih Metode Input Jamaah</h4>
+            <div class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+              <!-- Scan KTP -->
+              <label class="group flex cursor-pointer flex-col items-center rounded-2xl border-2 border-dashed border-ku-400/50 bg-white px-6 py-9 text-center transition-all duration-500 hover:border-ku-600 hover:shadow-lift active:scale-[0.98]">
+                <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="ocrJamaah('ktp', this)">
+                <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-ku-100 text-ku-700"><i class="ph-light ph-identification-card text-2xl"></i></span>
+                <p class="mt-4 text-[14px] font-bold text-ku-700">Scan KTP</p>
+                <p data-ocr-ket="ktp" class="mt-2 text-[11px] leading-relaxed text-inksoft">Unggah foto KTP. Teksnya dibaca sebagai rujukan untuk disalin.</p>
+                <span data-ocr-mode-label="" class="mt-3 rounded-full bg-ku-50 px-2.5 py-1 text-[9px] font-bold tracking-wider text-ku-600 uppercase">Dibaca di perangkat</span>
+              </label>
+              <!-- Scan Paspor -->
+              <label class="group flex cursor-pointer flex-col items-center rounded-2xl border-2 border-dashed border-gold-500/50 bg-white px-6 py-9 text-center transition-all duration-500 hover:border-gold-600 hover:shadow-lift active:scale-[0.98]">
+                <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="ocrJamaah('paspor', this)">
+                <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gold-200 text-gold-600"><i class="ph-light ph-identification-card text-2xl"></i></span>
+                <p class="mt-4 text-[14px] font-bold text-gold-600">Scan Paspor</p>
+                <p data-ocr-ket="paspor" class="mt-2 text-[11px] leading-relaxed text-inksoft">Unggah halaman biodata paspor. Kode MRZ di bagian bawah dibaca, lalu diperiksa.</p>
+                <span data-ocr-mode-label="" class="mt-3 rounded-full bg-ku-50 px-2.5 py-1 text-[9px] font-bold tracking-wider text-ku-600 uppercase">Dibaca di perangkat</span>
+              </label>
+              <!-- Isi Manual -->
+              <button onclick="jamaahMode('form')" class="group flex flex-col items-center rounded-2xl border-2 border-dashed border-inksoft/30 bg-white px-6 py-9 text-center transition-all duration-500 hover:border-inksoft/60 hover:shadow-lift active:scale-[0.98]">
+                <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-inksoft/10 text-inksoft"><i class="ph-light ph-pencil-simple text-2xl"></i></span>
+                <p class="mt-4 text-[14px] font-bold text-ink">Isi Manual</p>
+                <p class="mt-2 text-[11px] leading-relaxed text-inksoft">Ketik data jamaah sendiri secara manual dari awal.</p>
+              </button>
+            </div>
+            <p class="mt-6 text-center text-[10px] leading-relaxed text-inksoft/60"><i class="ph-light ph-info text-xs"></i> Hasil scan tidak mengisi form otomatis. Nilainya tampil di panel rujukan untuk disalin.</p>
+          </div>
+
+        <!-- === MODE FORM === -->
+        <div id="jm-form" class="hidden px-8 py-6">
+
+          <!-- Panel hasil OCR KTP (diisi renderOcrPanel) -->
+          <div id="jm-ocr-ktp" class="mb-5 hidden rounded-2xl border border-ku-700/20 bg-ku-50 p-4">
+            <div class="mb-3 flex items-center justify-between border-b border-ku-700/15 pb-2.5">
+              <h4 class="flex items-center gap-2 text-[13px] font-bold text-ku-800"><i class="ph-light ph-identification-card text-sm"></i> Hasil Baca KTP <span data-ocr-sumber="" class="text-[10px] font-semibold text-ku-600/80"></span></h4>
+              <div class="flex items-center gap-3">
+                <button onclick="copyOcrAll('ktp')" class="text-[11px] font-bold text-ku-700 hover:underline">Salin Semua</button>
+                <button onclick="document.getElementById('jm-ocr-ktp').classList.add('hidden')" class="text-[11px] font-bold text-danger hover:underline">Tutup Panel</button>
+              </div>
+            </div>
+            <p class="mb-3 rounded-lg bg-white px-3 py-2 text-[10px] text-ku-700">Hasil baca tidak mengisi form otomatis. Salin nilai yang diperlukan ke kolom formulir, dan periksa setiap nilai dengan KTP asli.</p>
+            <p data-ocr-status="" class="mb-3 hidden rounded-lg bg-white px-3 py-2 text-[11px] font-semibold text-ku-700" role="status" aria-live="polite"></p>
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
+            <div data-ocr-warnings="" class="mt-2.5 hidden space-y-1.5"></div>
+          </div>
+
+          <!-- Panel hasil OCR Paspor (diisi renderOcrPanel: fields + MRZ + warnings) -->
+          <div id="jm-ocr-paspor" class="mb-5 hidden rounded-2xl border border-gold-500/25 bg-gold-200/30 p-4">
+            <div class="mb-3 flex items-center justify-between border-b border-gold-500/20 pb-2.5">
+              <h4 class="flex items-center gap-2 text-[13px] font-bold text-gold-700"><i class="ph-light ph-identification-card text-sm"></i> Hasil Baca Paspor <span data-ocr-sumber="" class="text-[10px] font-semibold text-gold-600"></span></h4>
+              <div class="flex items-center gap-3">
+                <button onclick="copyOcrAll('paspor')" class="text-[11px] font-bold text-gold-700 hover:underline">Salin Semua</button>
+                <button onclick="document.getElementById('jm-ocr-paspor').classList.add('hidden')" class="text-[11px] font-bold text-danger hover:underline">Tutup Panel</button>
+              </div>
+            </div>
+            <p data-ocr-status="" class="mb-3 hidden rounded-lg bg-white px-3 py-2 text-[11px] font-semibold text-gold-700" role="status" aria-live="polite"></p>
+            <div data-ocr-mrz="" class="mb-3 hidden items-center gap-2 rounded-lg border px-3 py-2"></div>
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
+            <div data-ocr-warnings="" class="mt-2.5 hidden space-y-1.5"></div>
+          </div>
+
+          <form onsubmit="return false;">
+            <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+
+              <!-- 1. Data Pribadi -->
+              <div class="space-y-3 rounded-2xl border border-hairline bg-white/60 p-4 lg:self-start">
+                <h4 class="border-b border-hairline pb-2 text-[13px] font-bold text-ink">1. Data Pribadi</h4>
+                <div class="flex gap-2">
+                  <div class="w-1/3"><label class="f-label">Title</label><select id="jm-title" class="f-input"><option>TUAN</option><option>NYONYA</option><option>NONA</option></select></div>
+                  <div class="w-2/3"><label class="f-label">Nama Lengkap *</label><input id="jm-nama" class="f-input uppercase" placeholder="NAMA LENGKAP"></div>
+                </div>
+                <div><label class="f-label">Nama Ayah</label><input id="jm-nama_ayah" class="f-input uppercase"></div>
+                <div class="flex gap-2">
+                  <div class="w-1/3"><label class="f-label">ID Type</label><select id="jm-jenis_identitas" class="f-input"><option>NIK</option><option>KITAS</option><option>KITAP</option><option>PASPOR</option></select></div>
+                  <div class="w-2/3"><label class="f-label">No. NIK / Identitas</label><input id="jm-no_identitas" maxlength="16" inputmode="numeric" class="f-input bg-warnbg/40 font-mono" placeholder="16 digit angka" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                </div>
+                <div class="flex gap-2">
+                  <div class="w-1/2"><label class="f-label">Tempat Lahir</label><input id="jm-tempat_lahir" class="f-input uppercase"></div>
+                  <div class="w-1/2"><label class="f-label">Tgl Lahir</label><input id="jm-tgl_lahir" type="date" class="f-input"></div>
+                </div>
+                <div class="flex gap-2">
+                  <div class="w-1/2"><label class="f-label">Jenis Kelamin</label><select id="jm-j_kelamin" class="f-input"><option>L</option><option>P</option></select></div>
+                  <div class="w-1/2"><label class="f-label">Warga Negara</label><select id="jm-kewarganegaraan" class="f-input"><option>WNI</option><option>WNA</option></select></div>
+                </div>
+                <div><label class="f-label">Status Pernikahan</label><select id="jm-status_pernikahan" class="f-input"><option>BELUM MENIKAH</option><option>MENIKAH</option><option>JANDA / DUDA</option></select></div>
+                <div class="flex gap-2">
+                  <div class="w-1/2"><label class="f-label">Pendidikan</label><select id="jm-pendidikan" class="f-input"><option>TIDAK SEKOLAH</option><option>SD/MI</option><option>SMP/MTS</option><option>SMA/MA</option><option>D1</option><option>D2</option><option>D3</option><option>D4/S1</option><option>S2</option><option>S3</option></select></div>
+                  <div class="w-1/2"><label class="f-label">Pekerjaan</label><select id="jm-pekerjaan" class="f-input"><option>PNS</option><option>PEG. SWASTA</option><option>WIRAUSAHA</option><option>TNI / POLRI</option><option>PETANI</option><option>NELAYAN</option><option>LAINNYA</option><option>TIDAK BEKERJA</option></select></div>
+                </div>
+              </div>
+
+              <!-- 2. Alamat & Kontak -->
+              <div class="space-y-3 rounded-2xl border border-hairline bg-white/60 p-4 lg:self-start">
+                <h4 class="border-b border-hairline pb-2 text-[13px] font-bold text-ink">2. Alamat &amp; Kontak</h4>
+                <div><label class="f-label">Alamat (Jalan, RT/RW)</label><textarea id="jm-alamat" rows="2" class="f-input uppercase"></textarea></div>
+                <div><label class="f-label">Kelurahan</label><input id="jm-kelurahan" class="f-input uppercase"></div>
+                <div><label class="f-label">Kecamatan</label><input id="jm-kecamatan" class="f-input uppercase"></div>
+                <div><label class="f-label">Provinsi</label><input id="jm-provinsi" class="f-input uppercase" placeholder="PROVINSI"></div>
+                <div><label class="f-label">Kabupaten / Kota</label><input id="jm-kabupaten" class="f-input uppercase" placeholder="KABUPATEN/KOTA"></div>
+                <div class="flex gap-2">
+                  <div class="w-1/2"><label class="f-label">No. Telepon</label><input id="jm-no_telepon" class="f-input"></div>
+                  <div class="w-1/2"><label class="f-label">No. HP (WhatsApp) *</label><input id="jm-no_hp" inputmode="numeric" class="f-input font-mono" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                </div>
+              </div>
+
+              <!-- 3. Dokumen Perjalanan -->
+              <div class="space-y-3 rounded-2xl border border-hairline bg-white/60 p-4 lg:self-start">
+                <h4 class="border-b border-hairline pb-2 text-[13px] font-bold text-ink">3. Dokumen Perjalanan</h4>
+                <div><label class="f-label">No. Paspor</label><input id="jm-no_paspor" class="f-input font-mono uppercase" placeholder="Cth: X9012454"></div>
+                <div><label class="f-label">Nama di Paspor</label><input id="jm-nama_paspor" class="f-input uppercase"></div>
+                <div class="flex gap-2">
+                  <div class="w-1/2"><label class="f-label">Tgl Dikeluarkan</label><input id="jm-tgl_issue" type="date" class="f-input"></div>
+                  <div class="w-1/2"><label class="f-label">Tgl Expiry</label><input id="jm-tgl_expiry" type="date" class="f-input"></div>
+                </div>
+                <div><label class="f-label">Kota Paspor (Issuing Office)</label><input id="jm-kota_paspor" class="f-input uppercase"></div>
+                <div><label class="f-label">No. BPJS</label><input id="jm-no_bpjs" inputmode="numeric" class="f-input font-mono" placeholder="Opsional"></div>
+              </div>
+            </div>
+
+            <!-- 4. Dokumen Identitas (private storage + signed URL) -->
+            <div class="mt-5 rounded-2xl border border-hairline bg-white/60 p-4">
+              <div class="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
+                <div>
+                  <h4 class="text-[13px] font-bold text-ink">4. Dokumen Identitas</h4>
+                  <p class="text-[10px] text-inksoft">Disimpan privat. Pratinjau dibuka lewat tautan yang berlaku 15 menit.</p>
+                </div>
+                <span class="rounded-full border border-warn/25 bg-warnbg/60 px-3 py-1 text-[10px] font-semibold text-warn">Simpan data jamaah dahulu untuk mengunggah dokumen.</span>
+              </div>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div class="overflow-hidden rounded-xl border border-hairline bg-white">
+                  <div data-doc-slot="KTP" class="flex aspect-[4/3] items-center justify-center bg-creamdark/50"><div class="text-center text-inksoft/40"><i class="ph-light ph-image text-3xl"></i><p class="mt-1 text-[10px]">KTP - belum ada</p></div></div>
+                  <div class="p-3"><p class="text-[11px] font-bold text-ink">Foto KTP</p><p class="text-[9px] text-inksoft/60">JPEG/PNG/WebP - max 5MB</p>
+                    <label class="mt-2 block"><input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="uploadJamaahDoc('KTP', this)"><span data-upload-doc="" class="mt-2 flex w-full cursor-pointer items-center justify-center rounded-full border border-hairline bg-white py-1.5 text-[10px] font-bold text-inksoft hover:border-ku-700/40">Upload</span></label></div>
+                </div>
+                <div class="overflow-hidden rounded-xl border border-hairline bg-white">
+                  <div data-doc-slot="PASPOR_DEPAN" class="flex aspect-[4/3] items-center justify-center bg-creamdark/50"><div class="text-center text-inksoft/40"><i class="ph-light ph-image text-3xl"></i><p class="mt-1 text-[10px]">Paspor depan - belum ada</p></div></div>
+                  <div class="p-3"><p class="text-[11px] font-bold text-ink">Paspor Depan</p><p class="text-[9px] text-inksoft/60">Halaman biodata</p>
+                    <label class="mt-2 block"><input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="uploadJamaahDoc('PASPOR_DEPAN', this)"><span data-upload-doc="" class="mt-2 flex w-full cursor-pointer items-center justify-center rounded-full border border-hairline bg-white py-1.5 text-[10px] font-bold text-inksoft hover:border-ku-700/40">Upload</span></label></div>
+                </div>
+                <div class="overflow-hidden rounded-xl border border-hairline bg-white">
+                  <div data-doc-slot="PASPOR_BELAKANG" class="flex aspect-[4/3] items-center justify-center bg-creamdark/50"><div class="text-center text-inksoft/40"><i class="ph-light ph-image text-3xl"></i><p class="mt-1 text-[10px]">Paspor belakang - belum ada</p></div></div>
+                  <div class="p-3"><p class="text-[11px] font-bold text-ink">Paspor Belakang</p><p class="text-[9px] text-inksoft/60">Halaman tanda tangan</p>
+                    <label class="mt-2 block"><input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="uploadJamaahDoc('PASPOR_BELAKANG', this)"><span data-upload-doc="" class="mt-2 flex w-full cursor-pointer items-center justify-center rounded-full border border-hairline bg-white py-1.5 text-[10px] font-bold text-inksoft hover:border-ku-700/40">Upload</span></label></div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between gap-2.5 border-t border-hairline px-7 py-4">
+          <button id="jm-back" onclick="jamaahMode('choose')" class="hidden items-center gap-1.5 rounded-full border border-hairline bg-white px-5 py-2.5 text-[12px] font-semibold text-inksoft hover:text-ink"><i class="ph-light ph-arrow-left text-xs"></i> Kembali</button>
+          <div class="ml-auto flex items-center gap-2.5">
+            <button onclick="closeModal('modal-jamaah'); jamaahMode('choose')" class="rounded-full border border-hairline bg-white px-6 py-2.5 text-[12px] font-semibold text-inksoft hover:text-ink">Batal</button>
+            <button id="jm-submit" onclick="submitJamaah()" class="btn-primary hidden">Simpan Data<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Registrasi / edit agen (paralel openAgenModal GAS; komisi tier per entitas sejak 26 Okt 2026) -->
+  <div id="modal-agen" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-agen')">
+    <div class="modal-card max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream p-7 shadow-innerhl">
+        <div class="flex items-start justify-between">
+          <div><h3 class="font-display text-xl font-medium" id="ag-title">Registrasi Agen Baru</h3><p class="text-[11px] text-inksoft">Tier menentukan komisi agen. NoHP harus unik.</p></div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-agen')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <form onsubmit="return false;" class="mt-5 space-y-4">
+          <div><label class="f-label">Nama Lengkap Agen *</label><input id="agn-nama" class="f-input font-semibold" placeholder="Nama lengkap"></div>
+          <div><label class="f-label">Alamat Lengkap</label><textarea id="agn-alamat" rows="2" class="f-input uppercase" placeholder="Contoh: Jl. Ahmad Yani No. 10, Surabaya"></textarea></div>
+          <div><label class="f-label" for="agn-no_hp">No. HP (WhatsApp) *</label><input id="agn-no_hp" inputmode="numeric" class="f-input font-mono" placeholder="08xxxxxxxxxx" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+          <!-- Entitas (pilihan Owner), tier dari entitas itu, dan perekrut opsional dari entitas yang sama -->
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div id="agn-entitas-wrap" class="sm:col-span-2"><label class="f-label" for="agn-entitas">Entitas</label><select id="agn-entitas" class="f-input" onchange="isiPilihanTier()"></select></div>
+            <div><label class="f-label" for="agn-tier">Tier komisi *</label><select id="agn-tier" class="f-input"><option value="">Memuat...</option></select></div>
+            <div><label class="f-label" for="agn-upline">Perekrut</label><select id="agn-upline" class="f-input"><option value="">Memuat...</option></select></div>
+          </div>
+          <p id="agn-tier-info" class="text-[11px] leading-relaxed text-inksoft">Komisi tiap tier diatur di menu Komisi Agen. Perekrut hanya dicatat, tanpa bagian komisi.</p>
+          <div class="rounded-2xl border border-warn/25 bg-warnbg/50 p-4">
+            <label class="f-label !text-warn">PIN Akses Agen (6 Digit)</label>
+            <input id="agn-pin" type="password" maxlength="6" inputmode="numeric" autocomplete="current-password" class="f-input !bg-white text-center font-mono !text-lg !font-bold tracking-[0.5em]" placeholder="******" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            <p class="mt-2 text-[10px] text-inksoft">PIN 6 angka untuk akses agen. Kosongkan saat mengedit bila tidak ingin mengganti PIN.</p>
+          </div>
+          <div><label class="f-label">Wilayah (Kab/Kota) *</label><input id="agn-wilayah" class="f-input uppercase" placeholder="mis. BEKASI"></div>
+          <div class="rounded-2xl border border-ku-700/15 bg-ku-50 p-4 sm:col-span-2">
+            <p class="flex items-center gap-2 text-[12px] font-bold text-ku-700"><i class="ph-light ph-bank text-sm"></i> Rekening Bank (opsional - wajib sebelum pencairan komisi)</p>
+            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div><label class="f-label">Nama Bank</label><select id="agn-nama_bank" class="f-input font-semibold"><option value="">- Pilih -</option><option>BCA</option><option>BNI</option><option>BRI</option><option>BANK SYARIAH INDONESIA (BSI)</option><option>MANDIRI</option><option>CIMB NIAGA</option><option>PERMATA</option><option>DANAMON</option><option>PANIN</option><option>MEGA</option><option>LAINNYA</option></select></div>
+              <div><label class="f-label">No. Rekening</label><input id="agn-no_rekening" inputmode="numeric" class="f-input font-mono" placeholder="6-20 digit" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+              <div><label class="f-label">Nama Pemilik</label><input id="agn-nama_rekening" class="f-input uppercase" placeholder="NAMA SESUAI BUKU REKENING"></div>
+            </div>
+          </div>
+        </form>
+        <div class="mt-6 flex items-center justify-end gap-2.5">
+          <button onclick="closeModal('modal-agen')" class="rounded-full border border-hairline bg-white px-6 py-2.5 text-[12px] font-semibold text-inksoft hover:text-ink">Batal</button>
+          <button onclick="submitAgen()" class="btn-primary">Simpan Agen<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Buku Tabungan Agen (paralel openTabunganModal GAS) -->
+  <div id="modal-tabungan" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-tabungan')">
+    <div class="modal-card max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream shadow-innerhl">
+        <div class="flex items-start justify-between border-b border-hairline px-7 pt-6 pb-4">
+          <div><h3 class="font-display text-xl font-medium" id="tb-title">Buku Tabungan Agen</h3><p class="text-[11px] text-inksoft">Riwayat komisi per transaksi - pencairan hanya jika jamaah LUNAS</p></div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-tabungan')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <div class="px-7 py-6">
+          <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div class="text-right">
+              <p class="text-[10px] font-bold tracking-wider text-inksoft uppercase">Saldo Siap Cair</p>
+              <p id="tb-saldo" class="font-display text-3xl font-medium text-danger">Rp 0</p>
+              <p id="tb-saldo-lain" class="mt-1 text-[11px] text-inksoft"></p>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="tbl min-w-[480px]">
+              <thead><tr><th>Tanggal</th><th>Jamaah - Paket</th><th class="text-right">Komisi</th><th>Status</th></tr></thead>
+              <tbody id="tb-tbody">
+                <tr><td colspan="4" class="py-8 text-center text-inksoft italic">Pilih agen untuk melihat riwayat.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Registrasi Staff (paralel openUserModal GAS - role optgroup dinamis) -->
+  <div id="modal-user" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-user')">
+    <div class="modal-card w-full max-w-md rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream p-7 shadow-innerhl">
+        <div class="flex items-start justify-between">
+          <h3 class="font-display text-xl font-medium" id="usr-modal-title">Registrasi Staff Baru</h3>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-user')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <form onsubmit="return false;" class="mt-5 space-y-4">
+          <div><label class="f-label">Nama Lengkap *</label><input id="usr-nama" class="f-input font-semibold uppercase" placeholder="NAMA LENGKAP"></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="f-label">Username *</label><input id="usr-username" class="f-input font-mono" placeholder="username"></div>
+            <div id="usr-pass-wrap"><label class="f-label" for="usr-password">Kata sandi sementara <span id="usr-pass-label">*</span></label><input id="usr-password" type="password" class="f-input" autocomplete="new-password" placeholder="min. 10 karakter"><p class="mt-1 text-[10px] leading-snug text-inksoft/70">Staf wajib menggantinya saat masuk pertama. Kosongkan saat edit bila tidak diubah.</p></div>
+          </div>
+          <p id="usr-pass-self" class="hidden rounded-xl bg-ku-50 px-3 py-2 text-[11.5px] text-ku-700">Kata sandi Anda sendiri diganti lewat menu Akun saya.</p>
+          <div><label class="f-label">Penempatan (Entitas) *</label><select id="usr-entitas" class="f-input"><option value="">- Pilih Penempatan -</option></select></div>
+          <div>
+            <label class="f-label">Jabatan (Role) *</label>
+            <select id="usr-role" class="f-input">
+              <option value="">- Pilih Jabatan -</option>
+              <optgroup label="Internal Pusat (PST-01)">
+                <option value="OWNER">OWNER (PEMILIK)</option>
+                <option value="ADMIN_FINANCE">ADMIN FINANCE (KASIR)</option>
+                <option value="ADMIN_OPERASIONAL">ADMIN OPERASIONAL (STAF)</option>
+              </optgroup>
+              <optgroup label="Level Pimpinan (non-Pusat)">
+                <option value="KEPALA_ENTITAS">KEPALA CABANG</option>
+              </optgroup>
+            </select>
+            <p class="mt-1.5 text-[10px] text-inksoft">Pilih jabatan staf sesuai wewenang operasional di kantor pusat atau cabang.</p>
+          </div>
+        </form>
+        <div class="mt-6 flex items-center justify-end gap-2.5">
+          <button onclick="closeModal('modal-user')" class="rounded-full border border-hairline bg-white px-6 py-2.5 text-[12px] font-semibold text-inksoft hover:text-ink">Batal</button>
+          <button onclick="submitUser()" id="usr-submit" class="btn-primary">Simpan Akun<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Registrasi Cabang -->
+  <div id="modal-entitas" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-entitas')">
+    <div class="modal-card w-full max-w-md rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream p-7 shadow-innerhl">
+        <div class="flex items-start justify-between">
+          <div><h3 class="font-display text-lg font-medium" id="ent-modal-title">Registrasi Cabang</h3><p class="text-[11px] text-inksoft">Tambahkan kantor cabang baru</p></div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-entitas')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <form onsubmit="return false;" class="mt-5 space-y-4">
+          <div><label class="f-label">Nama Entitas *</label><input id="ent-nama" class="f-input font-semibold" placeholder="Cth: Cabang Surabaya"></div>
+          <div>
+            <label class="f-label" for="ent-komisi_cabang">Batas komisi cabang per jamaah (Rp)</label>
+            <input id="ent-komisi_cabang" inputmode="numeric" class="f-input font-mono" placeholder="2.500.000" oninput="this.value=fmtRibuan(this.value)">
+            <p class="mt-1.5 text-[10px] leading-relaxed text-inksoft/70">Ditetapkan Owner. Komisi tier agen cabang tidak boleh melebihi angka ini; cabang menerima batas dikurangi komisi agen, dan Pusat menerima margin dikurangi batas. Untuk jenis paket tertentu bisa diatur berbeda lewat tombol Per jenis paket di daftar entitas.</p>
+          </div>
+          <div><label class="f-label">Alamat / Keterangan</label><textarea id="ent-keterangan" rows="3" class="f-input" placeholder="Alamat lengkap atau keterangan tambahan..."></textarea></div>
+        </form>
+        <div class="mt-6 flex items-center justify-end gap-2.5">
+          <button onclick="closeModal('modal-entitas')" class="rounded-full border border-hairline bg-white px-6 py-2.5 text-[12px] font-semibold text-inksoft hover:text-ink">Batal</button>
+          <button onclick="submitEntitas()" id="ent-submit" class="btn-primary">Simpan Entitas<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Batas komisi cabang per jenis paket (penimpa angka bawaan cabang; komisi tier, 26 Okt 2026) -->
+  <div id="modal-komisi-paket" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-komisi-paket')">
+    <div class="modal-card max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream shadow-innerhl">
+        <div class="flex items-start justify-between border-b border-hairline px-7 pt-6 pb-4">
+          <div>
+            <h3 class="font-display text-xl font-medium" id="kp-title">Batas komisi cabang per jenis paket</h3>
+            <p class="text-[11px] text-inksoft" id="kp-sub">Kosongkan kolom untuk memakai angka bawaan cabang.</p>
+          </div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-komisi-paket')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <div class="px-7 py-6">
+          <div class="overflow-x-auto">
+            <table class="tbl min-w-[560px]">
+              <thead><tr><th>Jenis paket</th><th class="text-right">Margin terkecil</th><th class="text-right">Tier cabang tertinggi</th><th class="text-right">Batas komisi cabang</th><th>Catatan</th></tr></thead>
+              <tbody id="kp-tbody">
+                <tr><td colspan="5" class="py-8 text-center text-inksoft italic">Memuat...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="mt-4 text-[11px] leading-relaxed text-inksoft">Pendaftaran ditolak bila batas cabang lebih besar dari margin paket. Batas yang lebih kecil dari komisi tier cabang ditolak dulu; Anda bisa memilih menurunkan komisi tier itu ke batas baru.</p>
+        </div>
+        <div class="flex items-center justify-end gap-2.5 border-t border-hairline px-7 py-4">
+          <button onclick="closeModal('modal-komisi-paket')" class="rounded-full border border-hairline bg-white px-6 py-2.5 text-[12px] font-semibold text-inksoft hover:text-ink">Tutup</button>
+          <button onclick="simpanKomisiPaket()" id="kp-submit" data-perm="entitas_tulis" class="btn-primary">Simpan<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Saldo & pencairan bagian cabang (dicairkan finance Pusat setelah jamaah lunas; PO 23 Okt 2026) -->
+  <div id="modal-bagian-cabang" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-bagian-cabang')">
+    <div class="modal-card max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream shadow-innerhl">
+        <div class="flex items-start justify-between border-b border-hairline px-7 pt-6 pb-4">
+          <div>
+            <h3 class="font-display text-xl font-medium" id="bc-title">Bagian cabang</h3>
+            <p class="text-[11px] text-inksoft">Sisa bagian cabang setelah komisi agen cabang. Dicairkan Pusat setelah jamaah lunas.</p>
+          </div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-bagian-cabang')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <div class="px-7 py-6">
+          <dl class="grid grid-cols-3 gap-3">
+            <div class="rounded-xl border border-hairline bg-white px-4 py-3"><dt class="text-[10px] font-bold tracking-wider text-inksoft uppercase">Siap cair</dt><dd id="bc-siap" class="mt-1 font-mono text-base font-bold text-ink">Rp 0</dd></div>
+            <div class="rounded-xl border border-hairline bg-white px-4 py-3"><dt class="text-[10px] font-bold tracking-wider text-inksoft uppercase">Menunggu pelunasan</dt><dd id="bc-pending" class="mt-1 font-mono text-base font-bold text-inksoft">Rp 0</dd></div>
+            <div class="rounded-xl border border-hairline bg-white px-4 py-3"><dt class="text-[10px] font-bold tracking-wider text-inksoft uppercase">Sudah cair</dt><dd id="bc-cair" class="mt-1 font-mono text-base font-bold text-inksoft">Rp 0</dd></div>
+          </dl>
+          <div class="mt-5 overflow-x-auto">
+            <table class="tbl min-w-[520px]">
+              <thead><tr><th>Tanggal</th><th>Jamaah - Paket</th><th class="text-right">Margin</th><th class="whitespace-nowrap text-right">Bagian cabang</th><th>Status</th></tr></thead>
+              <tbody id="bc-tbody">
+                <tr><td colspan="5" class="py-8 text-center text-inksoft italic">Memuat...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="flex items-center justify-end gap-2.5 border-t border-hairline px-7 py-4">
+          <button onclick="closeModal('modal-bagian-cabang')" class="rounded-full border border-hairline bg-white px-6 py-2.5 text-[12px] font-semibold text-inksoft hover:text-ink">Tutup</button>
+          <button onclick="cairkanBagianCabang()" id="bc-cairkan" class="btn-primary hidden">Cairkan yang siap cair<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Daftarkan Komponen LA (paralel isModalKomponenOpen GAS) -->
+  <div id="modal-komponen" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-komponen')">
+    <div class="modal-card w-full max-w-md rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream p-7 shadow-innerhl">
+        <div class="flex items-start justify-between">
+          <h3 class="font-display text-lg font-medium">Daftarkan Komponen LA Baru</h3>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-komponen')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <form onsubmit="return false;" class="mt-5 space-y-4">
+          <div>
+            <label class="f-label">Kategori Utama</label>
+            <select class="f-input">
+              <option>Tiket Pesawat</option>
+              <option>Hotel Makkah</option>
+              <option>Hotel Madinah</option>
+              <option>Transportasi / Sewa Armada</option>
+              <option>Visa &amp; Handling</option>
+            </select>
+          </div>
+          <div><label class="f-label">Nama Item &amp; Spesifikasi Kamar/Armada</label><input class="f-input" placeholder="Misal: Garuda Indonesia PP / Hotel Anjum Triple Room"></div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="col-span-2"><label class="f-label">Harga Modal Bersih Vendor</label><input type="number" placeholder="0" inputmode="numeric" class="f-input text-right font-mono !font-bold" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+            <div><label class="f-label">Mata Uang</label><select class="f-input font-bold"><option>SAR (Riyal)</option><option>USD ($)</option><option>IDR (Rp)</option></select></div>
+          </div>
+          <div>
+            <label class="f-label">Metode Rumus Pembagi Sistem</label>
+            <select class="f-input">
+              <option>Opsi 1: Nilai Tetap Per Kepala Peserta (Per Pax)</option>
+              <option>Opsi 2: Nilai Borongan (Dibagi Rata Sesuai Jumlah Pax Grup)</option>
+            </select>
+            <p class="mt-1.5 text-[10px] italic leading-relaxed text-inksoft/60">*Gunakan Opsi 2 untuk komponen sewa Bus, Guide, atau paket handling grup agar sistem mengkalkulasi pembagian HPP secara dinamis dan proporsional.</p>
+          </div>
+        </form>
+        <div class="mt-6 flex items-center justify-end gap-2.5">
+          <button onclick="closeModal('modal-komponen')" class="rounded-full border border-hairline bg-white px-6 py-2.5 text-[12px] font-semibold text-inksoft hover:text-ink">Batal</button>
+          <button onclick="closeModal('modal-komponen')" class="btn-primary">Simpan Komponen<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Upgrade Paket (PRD v2.4) -->
+  <div id="modal-upgrade" data-allow-readonly="" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-upgrade')">
+    <div class="modal-card w-full max-w-lg rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="max-h-[85vh] overflow-y-auto rounded-[calc(1.75rem-0.5rem)] bg-cream p-7 shadow-innerhl">
+        <div class="flex items-start justify-between">
+          <div>
+            <h3 class="font-display text-xl font-medium">Upgrade Paket</h3>
+            <p class="mt-1 text-[12px] text-inksoft">Paket saat ini: <strong id="up-current" class="text-ku-700">-</strong> - kuota <span id="up-quota" class="font-mono">-</span></p>
+          </div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-upgrade')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+
+        <div id="up-targets" class="mt-5 space-y-3">
+          <p class="py-6 text-center text-[12px] text-inksoft/60"><span class="pulse-dot inline-block h-2 w-2 rounded-full bg-ku-400"></span>&nbsp; Memuat opsi paket...</p>
+        </div>
+
+        <div class="mt-4">
+          <label class="f-label">Catatan untuk tim KelolaUmroh (opsional)</label>
+          <textarea id="up-note" rows="2" class="f-input" placeholder="mis. butuh kuota lebih dari 200 jamaah mulai Desember"></textarea>
+        </div>
+
+        <div id="up-msg" class="mt-4 hidden rounded-2xl border px-4 py-3 text-[12.5px] leading-relaxed"></div>
+
+        <div class="mt-5 flex items-center gap-2.5">
+          <button onclick="closeModal('modal-upgrade')" class="flex-1 rounded-full border border-hairline bg-white py-3 text-[12px] font-semibold text-inksoft hover:text-ink">Batal</button>
+          <button onclick="submitUpgrade()" id="up-submit" class="flex-1 btn-primary justify-center !py-3 !text-[12px]" disabled="">Bayar &amp; Upgrade<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-credit-card text-[10px]"></i></span></button>
+        </div>
+        <p class="mt-4 text-[10px] leading-relaxed text-inksoft/70"><i class="ph-light ph-info text-xs"></i> Pembayaran online (VA bank / QRIS). Setelah paid: plan berubah otomatis + license di-re-issue - kuota naik pada sync berikutnya (maks. beberapa jam). Paket Custom tetap via negosiasi tim.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Slot Pack -->
+  <div id="modal-slot" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-slot')">
+    <div class="modal-card w-full max-w-md rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream p-7 shadow-innerhl">
+        <div class="flex items-start justify-between">
+          <h3 class="font-display text-xl font-medium">Beli Slot Pack</h3>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-slot')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <p class="mt-1.5 text-[12px] leading-relaxed text-inksoft">Kuota 47/50 terpakai. Slot dibayar di muka, sekali bayar per slot - kuota naik otomatis setelah pembayaran terkonfirmasi (license sync).</p>
+        <div class="mt-5">
+          <label class="f-label">Jumlah slot <span id="slot-price-label"></span></label>
+          <div class="flex items-center gap-3">
+            <button type="button" onclick="bumpSlot(-1)" class="flex h-11 w-11 items-center justify-center rounded-2xl border border-hairline bg-white text-lg font-bold text-inksoft hover:text-ku-700">-</button>
+            <input id="slot-qty" value="10" min="1" max="1000" type="number" oninput="renderSlotTotal()" class="f-input !py-3 text-center font-mono !text-xl !font-bold !text-ku-700 border-ku-700/30 bg-ku-50">
+            <button type="button" onclick="bumpSlot(1)" class="flex h-11 w-11 items-center justify-center rounded-2xl border border-hairline bg-white text-lg font-bold text-inksoft hover:text-ku-700">+</button>
+          </div>
+        </div>
+        <div class="mt-5 flex items-baseline justify-between rounded-2xl border border-ku-700/20 bg-ku-50 px-5 py-4"><span class="text-[12px] font-semibold text-inksoft">Total</span><span class="font-display text-2xl font-medium text-ku-700" id="slot-total">-</span></div>
+        <div id="slot-msg" class="mt-4 hidden rounded-2xl border px-4 py-3 text-[12.5px] leading-relaxed"></div>
+        <p class="mt-3 text-[10px] leading-relaxed text-inksoft/70"><i class="ph-light ph-info text-xs"></i> Alternatif: upgrade paket (tombol Upgrade Paket di banner kuota). Pembayaran online (VA bank / QRIS); transfer manual via tim (SLA verifikasi 1x24 jam).</p>
+        <button onclick="submitSlotPack()" id="slot-submit" class="btn-primary mt-5 w-full justify-center !py-3 !text-[13px]">Bayar Slot Pack Online<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-credit-card text-[10px]"></i></span></button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Modal: Catat Pembayaran -->
+  <div id="modal-bayar" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-bayar')">
+    <div class="modal-card w-full max-w-md rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream p-7 shadow-innerhl">
+        <div class="flex items-start justify-between">
+          <h3 class="font-display text-xl font-medium">Catat Pembayaran</h3>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-bayar')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <div class="mt-5 space-y-4">
+          <div class="rounded-2xl border border-hairline bg-white px-4 py-3">
+            <p class="text-[10px] font-bold tracking-wider text-inksoft/60 uppercase">Jamaah</p>
+            <p id="by-jamaah" class="text-[13px] font-bold text-ink">-</p>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="f-label">Nominal *</label><input id="by-nominal" value="" inputmode="numeric" class="f-input font-mono" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+            <div><label class="f-label">Jenis</label><select id="by-jenis" class="f-input"><option value="Uang Muka">Uang Muka (DP)</option><option>Pelunasan</option><option>Cicilan</option></select></div>
+          </div>
+          <div><label class="f-label">Keterangan</label><input id="by-keterangan" class="f-input" placeholder="opsional"></div>
+          <p class="text-[10px] text-inksoft/70">Nomor kwitansi diterbitkan otomatis saat pembayaran disimpan.</p>
+        </div>
+        <button onclick="submitPembayaran()" class="btn-primary mt-6 w-full justify-center !py-3 !text-[13px]">Simpan Kwitansi<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Tambah/Edit Jadwal (paralel View_Jadwal.html GAS) -->
+  <div id="modal-jadwal" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-jadwal')">
+    <div class="modal-card max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream p-7 shadow-innerhl">
+        <div class="flex items-start justify-between">
+          <h3 class="font-display text-xl font-medium" id="jd-title">Tambah Jadwal Baru</h3>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-jadwal')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <form onsubmit="return false;" class="mt-5 space-y-4">
+          <div><label class="f-label">Nama Paket *</label><input id="jd-nama_paket" class="f-input font-semibold" placeholder="mis. Umrah VIP Maret 2027"></div>
+          <div>
+            <label class="f-label">Tipe Waktu Keberangkatan</label>
+            <select id="jd-tipe_tanggal" class="f-input">
+              <option value="Pasti">Tgl Pasti</option>
+              <option value="Estimasi">Estimasi Bulan</option>
+            </select>
+          </div>
+          <div><label class="f-label">Tgl Keberangkatan</label><input id="jd-tgl_keberangkatan" type="date" class="f-input"></div>
+          <div><label class="f-label">Keterangan Waktu (estimasi)</label><input id="jd-keterangan_waktu" class="f-input" placeholder="mis. Maret 2027"></div>
+          <div><label class="f-label" for="jd-kuota">Kuota Maksimal *</label><input id="jd-kuota" value="40" inputmode="numeric" class="f-input font-mono" oninput="this.value=this.value.replace(/[^0-9]/g,'')"><p class="mt-1.5 text-[10px] leading-relaxed text-inksoft">Isi 0 untuk jadwal tanpa batas kursi. Jadwal ini tidak tampil di Aplikasi Agen dan hanya diisi lewat ERP.</p></div>
+          <div class="rounded-2xl border border-warn/25 bg-warnbg/50 p-4">
+            <label class="f-label !text-warn">Blokir / Booking Kuota Sementara</label>
+            <input id="jd-blokir_kuota" value="0" inputmode="numeric" class="f-input !bg-white font-mono" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            <p class="mt-2 text-[10px] leading-relaxed text-inksoft">Angka ini ditambahkan ke total terisi di Aplikasi Agen agar tidak overbooking.</p>
+          </div>
+          <div><label class="f-label">Status</label><select id="jd-status_aktif" class="f-input"><option>Aktif</option><option>Penuh</option><option>Selesai</option><option>Nonaktif</option></select></div>
+        </form>
+        <div class="mt-6 flex items-center justify-end gap-2.5">
+          <button onclick="closeModal('modal-jadwal')" class="rounded-full border border-hairline bg-white px-6 py-2.5 text-[12px] font-semibold text-inksoft hover:text-ink">Batal</button>
+          <button id="jd-submit" onclick="submitJadwal()" class="btn-primary">Simpan Jadwal<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Tambah Produk Katalog (paralel View_Katalog.html GAS) -->
+  <div id="modal-katalog" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-katalog')">
+    <div class="modal-card max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream shadow-innerhl">
+        <div class="flex items-start justify-between border-b border-hairline px-7 pt-6 pb-4">
+          <div><h3 class="font-display text-xl font-medium" id="kt-title">Tambah Produk Katalog</h3><p class="text-[11px] text-inksoft">Harga &amp; fasilitas untuk Marketing Kit / Brosur</p></div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-katalog')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <form onsubmit="return false;" class="space-y-5 px-7 py-6">
+          <div class="space-y-4 rounded-2xl border border-hairline bg-white/60 p-4">
+            <h4 class="border-b border-hairline pb-2 text-[13px] font-bold text-ink">1. Identitas Produk &amp; Harga</h4>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div><label class="f-label">Tautkan ke Jadwal Induk *</label><select id="kt-jadwal_id" class="f-input"><option value="">- Pilih Jadwal Keberangkatan -</option></select></div>
+              <div class="flex gap-2">
+                <div class="w-2/3"><label class="f-label">Jenis Paket *</label><select id="kt-jenis_paket" class="f-input font-bold"><option>Ekonomis</option><option>Spesial</option><option>Spesial *4</option><option>VIP *4/*5</option><option>VVIP *5</option></select></div>
+                <div class="w-1/3"><label class="f-label">Durasi</label><input id="kt-durasi_hari" inputmode="numeric" value="9" class="f-input" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 border-t border-hairline pt-4">
+              <div><label class="f-label">Harga Setor (Nett PT) *</label><input id="kt-harga_setor_std" value="35000000" inputmode="numeric" class="f-input !bg-dangerbg/30 font-mono !font-bold !text-danger" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+              <div><label class="f-label">Harga Jual (Ke Jamaah) *</label><input id="kt-harga_jual_std" value="38500000" inputmode="numeric" class="f-input !bg-ku-100/60 font-mono !font-bold !text-ku-700" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+            </div>
+            <p class="text-right text-[11px] font-bold text-inksoft">Estimasi Margin / Komisi: <span id="kt-margin" class="font-mono text-gold-600">Rp 3.500.000</span></p>
+          </div>
+          <div class="space-y-4 rounded-2xl border border-hairline bg-white/60 p-4">
+            <h4 class="border-b border-hairline pb-2 text-[13px] font-bold text-ink">2. Detail Fasilitas (Untuk Brosur)</h4>
+            <!-- Hotel dipilih dari Katalog Hotel (B-31); nama hotel di katalog diisi server dari pilihan ini -->
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div><label class="f-label" for="kt-hotel_mekkah_id">Hotel Makkah</label><select id="kt-hotel_mekkah_id" class="f-input"><option value="">Tanpa hotel</option></select></div>
+              <div><label class="f-label" for="kt-hotel_madinah_id">Hotel Madinah</label><select id="kt-hotel_madinah_id" class="f-input"><option value="">Tanpa hotel</option></select></div>
+            </div>
+            <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+              <div class="min-w-0 flex-1">
+                <label class="flex items-center gap-2.5 text-[12px] font-medium text-ink"><input id="kt-hotel_setaraf" type="checkbox" class="h-4 w-4 accent-ku-700"> atau setaraf</label>
+                <p class="mt-1 text-[10px] leading-relaxed text-inksoft/70">Centang bila hotel bisa diganti hotel lain yang sekelas. Tulisan "atau setaraf" tampil di belakang nama hotel di Portal Agen dan Portal Jamaah.</p>
+              </div>
+              <a href="#" onclick="closeModal('modal-katalog'); showView('hotel'); return false;" class="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-ku-700 hover:underline"><i class="ph-light ph-bed text-xs"></i> Kelola Katalog Hotel</a>
+            </div>
+            <div class="grid grid-cols-1 gap-4 border-t border-hairline pt-4 sm:grid-cols-2">
+              <div><label class="f-label">Maskapai Penerbangan</label><input id="kt-maskapai" class="f-input" placeholder="mis. Saudia Airlines"></div>
+              <div><label class="f-label">Rute Penerbangan</label><input id="kt-rute_penerbangan" class="f-input uppercase" placeholder="Cth: Surabaya - Jeddah (SUB-JED)"></div>
+            </div>
+            <div><label class="f-label">Fasilitas Tambahan / Highlight</label><input id="kt-fasilitas_tambahan" class="f-input" placeholder="Cth: Kereta Cepat Haramain, City Tour Thaif"></div>
+          </div>
+        </form>
+        <div class="flex items-center justify-end gap-2.5 border-t border-hairline px-7 py-4">
+          <button onclick="closeModal('modal-katalog')" class="rounded-full border border-hairline bg-white px-6 py-2.5 text-[12px] font-semibold text-inksoft hover:text-ink">Batal</button>
+          <button id="kt-submit" onclick="submitKatalog()" class="btn-primary">Simpan Katalog<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Tambah / Edit Hotel (Katalog Hotel B-31). Foto diunggah setelah hotel tersimpan (butuh id_hotel). Diisi js/19-hotel.js. -->
+  <div id="modal-hotel" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-hotel')">
+    <div class="modal-card max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream p-7 shadow-innerhl">
+        <div class="flex items-start justify-between">
+          <div><h3 class="font-display text-lg font-medium" id="ht-modal-title">Tambah Hotel</h3><p class="text-[11px] text-inksoft">Tampil sebagai pilihan hotel di Katalog Harga</p></div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-hotel')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <form onsubmit="return false;" class="mt-5 space-y-4">
+          <div><label class="f-label" for="ht-nama">Nama hotel *</label><input id="ht-nama" maxlength="150" class="f-input font-semibold" placeholder="mis. Hotel Al Safwa"></div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="f-label" for="ht-kota">Kota *</label>
+              <select id="ht-kota" class="f-input" onchange="hotelLabelJarak()"><option value="MAKKAH">Makkah</option><option value="MADINAH">Madinah</option></select>
+            </div>
+            <div>
+              <label class="f-label" for="ht-bintang">Bintang</label>
+              <select id="ht-bintang" class="f-input"><option value="">Belum diisi</option><option value="1">Bintang 1</option><option value="2">Bintang 2</option><option value="3">Bintang 3</option><option value="4">Bintang 4</option><option value="5">Bintang 5</option></select>
+            </div>
+          </div>
+          <p id="ht-kota-kunci" class="-mt-2 hidden text-[10px] leading-relaxed text-inksoft/70">Kota tidak bisa diganti karena hotel ini sedang dipakai paket di Katalog Harga.</p>
+          <div>
+            <label class="f-label" for="ht-jarak">Jarak (meter)</label>
+            <input id="ht-jarak" inputmode="numeric" maxlength="5" class="f-input font-mono" placeholder="mis. 350" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            <p class="mt-1.5 text-[10px] leading-relaxed text-inksoft/70">Jarak berjalan kaki <span id="ht-jarak-ke">ke Masjidil Haram</span>. Kosongkan bila belum tahu.</p>
+          </div>
+          <div class="rounded-2xl border border-hairline bg-white/60 p-4">
+            <p class="f-label !mb-2">Foto hotel</p>
+            <div class="flex items-center gap-4">
+              <span id="ht-foto-preview" class="flex h-16 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-hairline bg-creamdark/60 text-inksoft/40"><i class="ph-light ph-image text-xl"></i></span>
+              <div class="min-w-0 flex-1">
+                <p id="ht-foto-info" class="text-[11px] leading-relaxed text-inksoft">Foto bisa diunggah setelah hotel disimpan.</p>
+                <label id="ht-foto-btn" class="btn-ghost mt-2 hidden !w-fit cursor-pointer !py-2"><i class="ph-light ph-upload-simple text-xs"></i> <span id="ht-foto-label">Unggah foto</span><input id="ht-foto-file" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="hotelUnggahFoto(this)"></label>
+              </div>
+            </div>
+            <p class="mt-2 text-[10px] text-inksoft/70">JPEG, PNG, atau WebP, maks. 2 MB. Satu foto per hotel, dihitung dalam kuota penyimpanan.</p>
+          </div>
+        </form>
+        <p id="ht-form-msg" class="mt-4 hidden rounded-2xl border border-ku-700/20 bg-ku-50 px-4 py-3 text-[12px] leading-relaxed text-inksoft" role="status" aria-live="polite"></p>
+        <div class="mt-6 flex items-center justify-end gap-2.5">
+          <button type="button" onclick="closeModal('modal-hotel')" id="ht-tutup" class="rounded-full border border-hairline bg-white px-6 py-2.5 text-[12px] font-semibold text-inksoft hover:text-ink">Batal</button>
+          <button type="button" onclick="submitHotel()" id="ht-submit" class="btn-primary">Simpan Hotel<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Brosur jadwal / varian (25 Okt 2026, menggantikan Studio Brosur). Travel mengunggah desain sendiri; kontak agen
+       ditulis sistem saat agen mengunduh: pita di bawah brosur, atau area kosong bawaan desain. Diisi js/11-brosur.js. -->
+  <div id="modal-brosur" class="modal-overlay fixed inset-0 z-[85] flex items-center justify-center bg-ku-950/70 p-4 backdrop-blur-sm md:p-6" onclick="if(event.target===this)closeModal('modal-brosur')">
+    <div class="modal-card max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream shadow-innerhl">
+        <div class="flex flex-wrap items-start justify-between gap-3 border-b border-hairline px-7 pt-6 pb-4">
+          <div class="min-w-0">
+            <h3 class="font-display text-xl font-medium" id="br-judul">Brosur Jadwal</h3>
+            <p class="text-[11px] text-inksoft" id="br-sub">Unggah desain brosur travel. Nama dan nomor HP agen ditulis otomatis saat agen mengunduh.</p>
+          </div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-brosur')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <div class="grid grid-cols-1 gap-6 px-7 py-6 lg:grid-cols-5">
+          <!-- Pengaturan -->
+          <div class="space-y-4 lg:col-span-2">
+            <div id="br-pilih-jadwal" class="hidden">
+              <label class="f-label" for="br-jadwal">Jadwal</label>
+              <select id="br-jadwal" class="f-input font-semibold" onchange="brosurPilihJadwal(this.value)"><option value="">Pilih jadwal</option></select>
+            </div>
+
+            <p id="br-status" class="rounded-2xl border border-hairline bg-white/60 px-4 py-3 text-[12px] leading-relaxed text-inksoft" role="status"></p>
+
+            <div data-br-tulis="">
+              <label class="f-label">Gambar brosur</label>
+              <label class="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-inksoft/25 bg-white px-4 py-5 text-[12px] font-semibold text-inksoft transition-colors hover:border-ku-600 hover:text-ku-700">
+                <input id="br-file" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="brosurPilihFile(this)">
+                <i class="ph-light ph-upload-simple text-base"></i> <span id="br-file-label">Pilih gambar brosur</span>
+              </label>
+              <p id="br-file-info" class="mt-1.5 text-[10px] leading-relaxed text-inksoft/70">JPG, PNG, atau WebP, maks. 5 MB. Lebar disarankan 1080 px, rasio bebas (1:1, 4:5, 9:16).</p>
+            </div>
+
+            <fieldset data-br-tulis="" class="space-y-2">
+              <legend class="f-label">Cara menulis kontak agen</legend>
+              <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-hairline bg-white/70 p-3 has-[:checked]:border-ku-700/40 has-[:checked]:bg-ku-50">
+                <input type="radio" name="br-mode" value="pita" class="mt-0.5 h-4 w-4 accent-[#005136]" onchange="brosurMode('pita')">
+                <span><span class="block text-[12px] font-bold text-ink">Tambah pita di bawah brosur</span>
+                  <span class="block text-[11px] leading-relaxed text-inksoft">Brosur diperpanjang ke bawah dengan pita hitam setinggi 19% lebar brosur. Isi brosur tidak tertutup.</span></span>
+              </label>
+              <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-hairline bg-white/70 p-3 has-[:checked]:border-ku-700/40 has-[:checked]:bg-ku-50">
+                <input type="radio" name="br-mode" value="area" class="mt-0.5 h-4 w-4 accent-[#005136]" onchange="brosurMode('area')">
+                <span><span class="block text-[12px] font-bold text-ink">Tulis di area kosong bawaan desain</span>
+                  <span class="block text-[11px] leading-relaxed text-inksoft">Untuk desain yang sudah menyisakan area kosong di bagian bawah. Ukuran brosur tidak berubah.</span></span>
+              </label>
+              <div id="br-area-atur" class="hidden rounded-2xl border border-hairline bg-white/60 p-3">
+                <div class="flex items-baseline justify-between text-[11px]"><label for="br-area" class="font-semibold text-ink">Tinggi area kosong</label><span id="br-area-label" class="font-mono font-bold text-ku-700"></span></div>
+                <input id="br-area" type="range" min="5" max="40" step="0.5" value="12" class="mt-2 w-full accent-[#005136]" oninput="brosurArea(this.value)">
+                <p class="mt-1 text-[10px] leading-relaxed text-inksoft/70">Geser sampai garis emas pada gambar menutup tepat area kosong di desain.</p>
+              </div>
+            </fieldset>
+
+            <div class="rounded-2xl border border-hairline bg-white/60 p-3">
+              <p class="text-[11px] font-semibold text-ink">Contoh hasil unduhan agen</p>
+              <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-inksoft">
+                <label class="flex items-center gap-1.5"><input id="br-contoh-foto" type="checkbox" checked="" class="h-3.5 w-3.5 accent-[#005136]" onchange="brosurGambar()"> dengan foto</label>
+                <label class="flex items-center gap-1.5"><input id="br-contoh-wilayah" type="checkbox" checked="" class="h-3.5 w-3.5 accent-[#005136]" onchange="brosurGambar()"> dengan wilayah</label>
+              </div>
+              <p class="mt-1.5 text-[10px] leading-relaxed text-inksoft/70">Bawaan agen hanya nama dan nomor HP. Foto dan wilayah tampil bila agen menyalakannya di Profil Portal Agen.</p>
+              <button type="button" id="br-lihat" onclick="brosurPratinjau()" class="btn-ghost mt-3 w-full justify-center !py-2.5"><i class="ph-light ph-eye text-sm"></i> Lihat contoh hasil</button>
+            </div>
+          </div>
+
+          <!-- Gambar: panduan area/pita, atau hasil dari server -->
+          <div class="lg:col-span-3">
+            <div class="flex min-h-[280px] items-center justify-center overflow-hidden rounded-2xl border border-hairline bg-creamdark/40 p-4">
+              <p id="br-kosong" class="px-6 text-center text-[12px] text-inksoft/60">Pilih gambar brosur untuk melihat di mana kontak agen akan ditulis.</p>
+              <div id="br-panduan" class="relative mx-auto hidden w-fit max-w-full">
+                <img id="br-gambar" alt="Brosur" class="block max-h-[62vh] w-auto max-w-full" onload="brosurGambarSiap()">
+                <div id="br-area-garis" class="pointer-events-none absolute inset-x-0 bottom-0 hidden items-center justify-center border-2 border-dashed border-gold-500 bg-gold-500/15 text-center text-[10px] font-bold text-gold-600"><span class="rounded-full bg-white/85 px-2 py-0.5">Area kontak agen</span></div>
+                <div id="br-pita" class="hidden w-full items-center justify-center border-t-2 border-gold-500/70 bg-black text-[10px] font-semibold text-gold-400" style="aspect-ratio: 100 / 19">Pita kontak agen</div>
+              </div>
+              <img id="br-hasil" alt="Contoh hasil brosur dengan kontak agen" class="mx-auto hidden max-h-[66vh] w-auto max-w-full">
+            </div>
+            <p id="br-ukuran" class="mt-2 text-[10px] text-inksoft/70"></p>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-hairline px-7 py-4">
+          <button type="button" id="br-hapus" onclick="brosurHapus()" class="hidden rounded-full px-4 py-2.5 text-[12px] font-semibold text-danger hover:bg-dangerbg">Hapus brosur</button>
+          <div class="ml-auto flex items-center gap-2.5">
+            <button type="button" onclick="closeModal('modal-brosur')" class="rounded-full border border-hairline bg-white px-6 py-2.5 text-[12px] font-semibold text-inksoft hover:text-ink">Tutup</button>
+            <button type="button" id="br-simpan" data-br-tulis="" onclick="brosurSimpan()" class="btn-primary">Simpan Brosur<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Dashboard Laba Rugi P&L (paralel openProfitModal GAS) -->
+  <div id="modal-pl" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-pl')">
+    <div class="modal-card max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream shadow-innerhl">
+        <div class="flex flex-wrap items-start justify-between gap-3 border-b border-hairline px-7 pt-6 pb-4">
+          <div><h3 class="font-display text-xl font-medium">Dashboard Laba Rugi (P&amp;L)</h3><p class="text-[11px] text-inksoft" id="pl-subtitle">Paket: - - Total Jamaah: -</p></div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-pl')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <div class="px-7 py-6">
+          <div class="mb-6 grid grid-cols-2 gap-4">
+            <div class="rounded-2xl border border-hairline bg-white p-4"><p class="kpi-label">Potensi Tagihan Total</p><p class="mt-1.5 font-display text-xl font-medium text-ink" id="pl-tagihan">Rp 0</p></div>
+            <div class="rounded-2xl border border-ku-700/20 bg-ku-50 p-4"><p class="kpi-label !text-ku-700">Kas Nyata Masuk (Telah Dibayar)</p><p class="mt-1.5 font-display text-2xl font-medium text-ku-700" id="pl-masuk">Rp 0</p><p class="mt-1 text-[10px] font-bold text-danger" id="pl-piutang">Sisa Piutang Jamaah: Rp 0</p></div>
+          </div>
+          <h4 class="mb-3 border-b border-hairline pb-2 text-[13px] font-bold text-ink">Rincian Pengeluaran (HPP &amp; Ops)</h4>
+          <div class="mb-6 space-y-3">
+            <div class="flex items-center justify-between rounded-2xl border border-hairline bg-white px-4 py-3"><div><p class="text-[12px] font-bold text-ink">Total HPP / Modal PT (Harga Setor)</p><p class="text-[10px] text-inksoft/60">Terekam otomatis dari modal dasar paket</p></div><p class="font-mono text-[15px] font-bold text-ink" id="pl-hpp">- Rp 0</p></div>
+            <div class="flex items-center justify-between rounded-2xl border border-hairline bg-white px-4 py-3"><div><p class="text-[12px] font-bold text-danger">Total Beban Komisi</p><p class="text-[10px] text-inksoft/60" id="pl-komisi-note">Total ujroh yang telah didistribusikan ke agen</p></div><p class="font-mono text-[15px] font-bold text-danger" id="pl-komisi">- Rp 0</p></div>
+            <div class="flex items-center justify-between rounded-2xl border border-warn/25 bg-warnbg/40 px-4 py-3"><div><p class="text-[12px] font-bold text-ink">Biaya Operasional (Extra Charge)</p><p class="text-[10px] text-inksoft/60">Input manual jika ada pengeluaran tak terduga</p></div><input value="0" inputmode="numeric" class="f-input !w-40 !py-2 text-right font-mono !font-bold" id="pl-biaya-ops" oninput="this.value=this.value.replace(/[^0-9]/g,''); plRecalc()"></div>
+          </div>
+          <div class="relative flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-2xl bg-ku-950 p-5 shadow-ambient">
+            <i class="ph-light ph-coins pointer-events-none absolute -top-6 -right-4 text-[90px] text-gold-400/10"></i>
+            <div class="relative z-10">
+              <p class="text-[11px] font-bold tracking-widest text-gold-300 uppercase">Estimasi Laba Bersih</p>
+              <p class="mt-0.5 text-[10px] text-cream/50">Omset - HPP - Komisi - Operasional</p>
+            </div>
+            <p class="relative z-10 font-display text-3xl font-medium text-ku-300" id="pl-laba">Rp 0</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Daftar Peserta & Finance (paralel openPesertaModal GAS) -->
+  <div id="modal-peserta" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-peserta')">
+    <div class="modal-card max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream shadow-innerhl">
+        <div class="flex flex-wrap items-start justify-between gap-3 border-b border-hairline px-7 pt-6 pb-4">
+          <div><h3 class="font-display text-xl font-medium" id="ps-title">Daftar Peserta</h3><p class="text-[11px] text-inksoft">aksi Bayar / Keluar per jamaah</p></div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-peserta')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <div class="px-7 py-6">
+          <table class="tbl">
+            <thead><tr><th>Nama Jamaah</th><th class="text-center">Kategori</th><th class="text-center">Status Pembayaran</th><th class="text-right">Aksi</th></tr></thead>
+            <tbody id="ps-tbody">
+              <tr><td colspan="4" class="py-8 text-center text-inksoft italic">Pilih jadwal untuk melihat peserta.</td></tr>
+            </tbody>
+          </table>
+          <p class="mt-4 text-[10px] text-inksoft/60"><i class="ph-light ph-info text-xs"></i> Logistik per jamaah (6 item) diakses via tombol Logistik pada kartu jadwal. Kategori TL/Muthawwif/FPU/Free otomatis harga Rp 0.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Keluar / Pindah Jadwal (paralel openMigrationModal GAS) -->
+  <div id="modal-migrasi" class="modal-overlay fixed inset-0 z-[90] flex items-center justify-center bg-ku-950/70 p-5 backdrop-blur-md" onclick="if(event.target===this)closeModal('modal-migrasi')">
+    <div class="modal-card w-full max-w-md rounded-[1.75rem] bg-white/85 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream p-7 shadow-innerhl">
+        <div class="flex items-start justify-between">
+          <h3 class="font-display text-lg font-medium">Keluar / Pindah Jadwal</h3>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-migrasi')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <p class="mt-2 text-[13px] text-inksoft">Apa yang ingin Anda lakukan untuk jamaah <strong class="text-ink" id="mg-nama">-</strong>?</p>
+        <div class="mt-5 space-y-4">
+          <button onclick="submitMigrasi('cancel')" class="w-full rounded-2xl border-2 border-danger/20 bg-dangerbg/40 p-4 text-left transition-all hover:border-danger/60 active:scale-[0.98]">
+            <p class="flex items-center gap-2 font-bold text-danger"><i class="ph-light ph-x-circle text-base"></i>Batalkan Keberangkatan</p>
+            <p class="mt-1 text-[10px] leading-relaxed text-inksoft">Hapus dari jadwal. Riwayat uang tetap ada di database (Kas Gantung).</p>
+          </button>
+          <div class="relative py-2">
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-hairline"></div></div>
+            <div class="relative flex justify-center"><span class="bg-cream px-2 text-[10px] font-bold tracking-widest text-inksoft/50 uppercase">Atau Reschedule</span></div>
+          </div>
+          <div class="rounded-2xl border-2 border-ku-700/15 bg-ku-50 p-4">
+            <p class="flex items-center gap-2 font-bold text-ku-700"><i class="ph-light ph-airplane-tilt text-base"></i>Pindah ke Jadwal Lain</p>
+            <label class="f-label !text-ku-700 mt-3">Pilih Jadwal Tujuan :</label>
+            <select id="mg-target" class="f-input"><option value="">- Pilih Jadwal Aktif -</option></select>
+            <button onclick="submitMigrasi('move')" class="mt-4 w-full rounded-full bg-ku-600 py-2.5 text-[12px] font-bold text-cream shadow transition-all hover:bg-ku-700 active:scale-[0.98]">Eksekusi Perpindahan Uang &amp; Data</button>
+            <p class="mt-2 text-center text-[9px] italic text-ku-600/70">*Seluruh riwayat DP/cicilan dan komisi agen jamaah ini ikut pindah ke jadwal baru tanpa berubah.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Plotting Peserta -->
+  <div id="modal-plot" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-plot')">
+    <div class="modal-card w-full max-w-lg rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream p-7 shadow-innerhl">
+        <div class="flex items-start justify-between">
+          <div><h3 class="font-display text-xl font-medium" id="pl-title">Plotting Peserta</h3><p class="text-[12px] text-inksoft">Cek kuota &amp; duplikasi otomatis</p></div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-plot')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <div class="mt-5 space-y-4">
+          <div><label class="f-label">Jamaah *</label><select id="plot-jamaah" class="f-input font-semibold"><option value="">Cari jamaah terdaftar... (cegah duplikat per jadwal)</option></select></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="f-label">Katalog Paket *</label><select id="plot-katalog" class="f-input" onchange="onKatalogPicked()"><option value="">- Pilih katalog -</option></select></div>
+            <div><label class="f-label">Kategori Peserta</label><select id="plot-kategori" class="f-input" onchange="onKatalogPicked()"><option value="Jamaah Reguler">Jamaah Reguler</option><option value="Tour Leader">Tour Leader (harga 0)</option><option value="Muthawwif">Muthawwif (harga 0)</option><option value="Bayi (Infant)">Bayi (Infant) - harga normal</option><option value="FPU / Free">FPU / Free - Free Peserta Umroh (harga 0)</option></select></div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="f-label" for="plot-harga_jual">Harga Jual Riil</label><input id="plot-harga_jual" value="0" inputmode="numeric" class="f-input font-mono" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+            <div><label class="f-label" for="plot-harga_setor">Harga Setor (HPP katalog)</label><input id="plot-harga_setor" value="0" readonly="" tabindex="-1" class="f-input font-mono bg-inksoft/5 text-inksoft"></div>
+          </div>
+          <div><label class="f-label" for="plot-agen">Agen Closing</label><select id="plot-agen" class="f-input"><option value="">- Tanpa agen (penjualan kantor) -</option></select></div>
+          <p class="text-[10px] text-inksoft/70">Harga jual boleh dinego per jamaah; HPP selalu mengikuti katalog jadwal. Tour Leader, Muthawwif, dan FPU / Free dicatat harga 0.</p>
+        </div>
+        <button id="plot-submit" onclick="submitPlot()" class="btn-primary mt-6 w-full justify-center !py-3 !text-[13px]">Plotting Jamaah<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Logistik (6 item) -->
+  <div id="modal-logistik" class="modal-overlay fixed inset-0 z-[80] flex items-center justify-center bg-ku-950/60 p-5 backdrop-blur-sm" onclick="if(event.target===this)closeModal('modal-logistik')">
+    <div class="modal-card w-full max-w-md rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+      <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream p-7 shadow-innerhl">
+        <div class="flex items-start justify-between">
+          <div><h3 class="font-display text-xl font-medium">Update Logistik</h3><p class="text-[12px] text-inksoft">Status perlengkapan per jamaah</p></div>
+          <button type="button" aria-label="Tutup" onclick="closeModal('modal-logistik')" class="flex h-8 w-8 items-center justify-center rounded-full text-inksoft/50 hover:bg-inksoft/10 hover:text-ink"><i class="ph-light ph-x text-base"></i></button>
+        </div>
+        <div class="mt-5 space-y-4">
+          <div><label class="f-label">Jamaah</label><select id="lg-jamaah" class="f-input font-semibold" onchange="onLogistikJamaah()"><option value="">- Pilih Jamaah -</option></select></div>
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="flex items-center justify-between rounded-2xl border border-hairline bg-white px-4 py-3 text-[12px] font-semibold"><span>Koper Bagasi</span><input id="lg-koper_bagasi" type="checkbox" class="h-4 w-4 accent-[#005136]"></label>
+            <label class="flex items-center justify-between rounded-2xl border border-hairline bg-white px-4 py-3 text-[12px] font-semibold"><span>Koper Kabin</span><input id="lg-koper_kabin" type="checkbox" class="h-4 w-4 accent-[#005136]"></label>
+            <label class="flex items-center justify-between rounded-2xl border border-hairline bg-white px-4 py-3 text-[12px] font-semibold"><span>Ihram / Mukena</span><input id="lg-ihram_mukena" type="checkbox" class="h-4 w-4 accent-[#005136]"></label>
+            <label class="flex items-center justify-between rounded-2xl border border-hairline bg-white px-4 py-3 text-[12px] font-semibold"><span>Tas Paspor</span><input id="lg-tas_paspor" type="checkbox" class="h-4 w-4 accent-[#005136]"></label>
+            <label class="flex items-center justify-between rounded-2xl border border-hairline bg-white px-4 py-3 text-[12px] font-semibold"><span>Batik</span><input id="lg-batik" type="checkbox" class="h-4 w-4 accent-[#005136]"></label>
+            <label class="flex items-center justify-between rounded-2xl border border-hairline bg-white px-4 py-3 text-[12px] font-semibold"><span>Buku Doa</span><input id="lg-buku_doa" type="checkbox" class="h-4 w-4 accent-[#005136]"></label>
+          </div>
+        </div>
+        <button onclick="submitLogistik()" class="btn-primary mt-6 w-full justify-center !py-3 !text-[13px]">Simpan Logistik<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]"></i></span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Persiapan akun & travel (27 Okt 2026, DESAIN_AKUN_OWNER_ONBOARDING.md) - js/22-mulai.js.
+       Panel 1: kata sandi sementara wajib diganti (semua API lain ditolak server sampai diganti).
+       Panel 2: langkah persiapan (Owner: profil, rekening, WhatsApp, tim, kenalan fitur; staf: kenalan fitur). -->
+  <div id="mulai" class="fixed inset-0 z-[90] hidden overflow-y-auto bg-ku-950/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="mulai-judul">
+    <div class="mx-auto flex min-h-full w-full max-w-3xl items-center px-4 py-6 md:px-6">
+      <div class="w-full rounded-[1.75rem] bg-white/80 p-2 shadow-ambient ring-1 ring-hairline">
+        <div class="rounded-[calc(1.75rem-0.5rem)] bg-cream p-6 shadow-innerhl md:p-8">
+
+          <section id="mulai-sandi" class="hidden">
+            <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-ku-950 text-gold-300"><i class="ph-light ph-key text-xl" aria-hidden="true"></i></span>
+            <h2 id="mulai-judul" class="mt-4 font-display text-2xl font-medium text-ink">Buat kata sandi baru</h2>
+            <p class="mt-1.5 max-w-xl text-[13px] leading-relaxed text-inksoft" id="mulai-sandi-sub">Anda masuk dengan kata sandi sementara. Buat kata sandi sendiri dulu; setelah disimpan, kata sandi sementara tidak berlaku lagi.</p>
+            <form class="mt-6 max-w-md space-y-4" onsubmit="mulaiSimpanSandi(); return false;">
+              <input type="text" id="mulai-username" autocomplete="username" class="hidden" tabindex="-1" aria-hidden="true">
+              <div><label class="f-label" for="mulai-lama">Kata sandi sementara</label><input id="mulai-lama" type="password" class="f-input" autocomplete="current-password" required=""></div>
+              <div><label class="f-label" for="mulai-baru">Kata sandi baru</label><input id="mulai-baru" type="password" class="f-input" autocomplete="new-password" required="" aria-describedby="mulai-syarat" oninput="mulaiCekSyarat()"></div>
+              <div><label class="f-label" for="mulai-ulang">Ulangi kata sandi baru</label><input id="mulai-ulang" type="password" class="f-input" autocomplete="new-password" required="" oninput="mulaiCekSyarat()"></div>
+              <ul id="mulai-syarat" class="space-y-1 text-[12px] text-inksoft"></ul>
+              <p id="mulai-sandi-msg" class="text-[12px] font-semibold text-danger" role="alert"></p>
+              <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <button type="button" data-logout="" class="text-[12px] font-semibold text-inksoft hover:text-ink">Keluar</button>
+                <button type="submit" id="mulai-sandi-btn" class="btn-primary">Simpan kata sandi<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-check text-[10px]" aria-hidden="true"></i></span></button>
+              </div>
+            </form>
+          </section>
+
+          <section id="mulai-langkah" class="hidden" aria-labelledby="mulai-langkah-judul">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 id="mulai-langkah-judul" class="font-display text-2xl font-medium text-ink">Persiapan travel</h2>
+                <p class="mt-1 max-w-xl text-[13px] leading-relaxed text-inksoft" id="mulai-langkah-sub"></p>
+              </div>
+              <button type="button" onclick="mulaiTutup()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-inksoft/60 hover:bg-inksoft/10 hover:text-ink" aria-label="Tutup, lanjutkan nanti"><i class="ph-light ph-x text-base" aria-hidden="true"></i></button>
+            </div>
+            <div class="mt-4 flex items-center gap-3">
+              <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-ku-950/10"><div id="mulai-bar" class="h-full rounded-full bg-ku-600 transition-all duration-500" style="width:0%"></div></div>
+              <p class="shrink-0 text-[12px] font-semibold text-inksoft" id="mulai-hitung" aria-live="polite"></p>
+            </div>
+            <div class="mt-6 grid gap-6 md:grid-cols-[190px_1fr]">
+              <ol id="mulai-daftar" class="flex gap-1.5 overflow-x-auto pb-1 md:flex-col md:overflow-visible md:pb-0"></ol>
+              <div id="mulai-isi" class="min-w-0"></div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+  </div>
+

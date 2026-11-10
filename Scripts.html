@@ -1,0 +1,331 @@
+<!-- Vendor Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+<script>
+// ---------- Modern Floating Toast Notification System (dnzy Umroh ERP) ----------
+window.dnzyToast = function (message, type, duration, title) {
+  type = type || "info";
+  duration = duration || 4000;
+
+  var icon = "ph-check-circle";
+  var borderCls = "border-[#C8A24B]";
+  var badgeCls = "bg-[#C8A24B]/20 text-[#D9BE79]";
+  var defaultTitle = "Berhasil";
+
+  if (type === "error" || type === "danger") {
+    icon = "ph-x-circle";
+    borderCls = "border-rose-500";
+    badgeCls = "bg-rose-500/20 text-rose-300";
+    defaultTitle = "Perhatian";
+  } else if (type === "warning" || type === "warn") {
+    icon = "ph-warning";
+    borderCls = "border-amber-500";
+    badgeCls = "bg-amber-500/20 text-amber-300";
+    defaultTitle = "Peringatan";
+  } else if (type === "info") {
+    icon = "ph-info";
+    borderCls = "border-sky-500";
+    badgeCls = "bg-sky-500/20 text-sky-300";
+    defaultTitle = "Informasi";
+  }
+  var toastTitle = title || defaultTitle;
+
+  var container = document.getElementById("dnzy-toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "dnzy-toast-container";
+    container.className = "fixed top-5 right-4 left-4 sm:left-auto sm:right-6 sm:w-[380px] z-[999999] flex flex-col gap-2.5 pointer-events-none";
+    document.body.appendChild(container);
+  }
+
+  var toast = document.createElement("div");
+  toast.className = "toast-enter pointer-events-auto relative flex items-start gap-3.5 p-4 rounded-2xl bg-[#041F17] text-cream border-l-4 " + borderCls + " shadow-2xl ring-1 ring-white/10 overflow-hidden";
+  toast.style.backdropFilter = "blur(16px)";
+
+  toast.innerHTML =
+    '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ' + badgeCls + '">' +
+      '<i class="ph-light ' + icon + ' text-xl"></i>' +
+    '</div>' +
+    '<div class="flex-1 min-w-0 pr-1">' +
+      '<p class="text-[11px] font-bold tracking-wider uppercase text-gold-300">' + toastTitle + '</p>' +
+      '<p class="mt-0.5 text-[12.5px] leading-snug font-medium text-cream/90">' + String(message || "") + '</p>' +
+    '</div>' +
+    '<button type="button" class="shrink-0 text-cream/40 hover:text-cream text-base p-1 rounded-lg transition-colors" title="Tutup">' +
+      '<i class="ph-light ph-x"></i>' +
+    '</button>' +
+    '<div class="toast-progress absolute bottom-0 left-0 h-[2px] bg-gold-400/40" style="width: 100%; transition: width ' + duration + 'ms linear;"></div>';
+
+  var closeBtn = toast.querySelector("button");
+  var dismissed = false;
+  function dismiss() {
+    if (dismissed) return;
+    dismissed = true;
+    toast.classList.remove("toast-enter");
+    toast.classList.add("toast-exit");
+    setTimeout(function () {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 280);
+  }
+  if (closeBtn) closeBtn.onclick = dismiss;
+
+  container.appendChild(toast);
+
+  // Trigger progress bar shrink
+  requestAnimationFrame(function () {
+    var bar = toast.querySelector(".toast-progress");
+    if (bar) bar.style.width = "0%";
+  });
+
+  var timer = setTimeout(dismiss, duration);
+  toast.onmouseenter = function () { clearTimeout(timer); };
+  toast.onmouseleave = function () { timer = setTimeout(dismiss, 2000); };
+};
+
+window.notify = window.dnzyToast;
+
+// Intercept window.alert so all native browser alerts become modern toasts
+window.alert = function (msg) {
+  var str = String(msg || "");
+  var type = "info";
+  var title = "Informasi";
+  if (/berhasil|sukses|tersimpan|disimpan|aktif|selesai/i.test(str)) {
+    type = "success";
+    title = "Berhasil";
+  } else if (/gagal|salah|error|batal|rusak|ditolak/i.test(str)) {
+    type = "error";
+    title = "Gagal";
+  } else if (/perhatian|peringatan|harus|wajib|minimal|maksimal/i.test(str)) {
+    type = "warning";
+    title = "Perhatian";
+  }
+  window.dnzyToast(str, type, 4000, title);
+};
+
+// ---------- Core UI Switchers & Navigation ----------
+window.showView = function showView(name) {
+  document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
+  const target = document.getElementById("view-" + name);
+  if (target) {
+    target.classList.add("active");
+  }
+  document.querySelectorAll(".nav-link").forEach((l) => {
+    l.classList.toggle("active", l.dataset.view === name);
+  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (window.innerWidth < 1024) toggleSidebar(false);
+};
+
+function bindNavLinks() {
+  document.querySelectorAll(".nav-link").forEach((l) => {
+    if (l.__navBound) return;
+    l.__navBound = true;
+    l.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (l.dataset.view) window.showView(l.dataset.view);
+    });
+  });
+}
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", bindNavLinks);
+} else {
+  bindNavLinks();
+}
+
+// ---------- Mobile Sidebar ----------
+function toggleSidebar(force) {
+  const sb = document.getElementById("sidebar");
+  const bd = document.getElementById("sidebar-backdrop");
+  if (!sb) return;
+  const open = force !== undefined ? force : sb.classList.contains("-translate-x-full");
+  sb.classList.toggle("-translate-x-full", !open);
+  if (bd) bd.classList.toggle("hidden", !open);
+}
+
+// ---------- Modals Handler ----------
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add("open");
+}
+
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove("open");
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open"));
+  }
+});
+
+// ---------- Modal Jamaah: mode Choose / Form ----------
+function jamaahMode(mode) {
+  const choose = document.getElementById("jm-choose");
+  const form = document.getElementById("jm-form");
+  const back = document.getElementById("jm-back");
+  const submit = document.getElementById("jm-submit");
+  const isForm = mode === "form";
+  if (choose) choose.classList.toggle("hidden", isForm);
+  if (form) form.classList.toggle("hidden", !isForm);
+  const adaKembali = isForm && window.__jmTanpaPilihan !== true;
+  if (back) {
+    back.classList.toggle("hidden", !adaKembali);
+    back.classList.toggle("flex", adaKembali);
+  }
+  if (submit) submit.classList.toggle("hidden", !isForm);
+  const title = document.getElementById("jm-modal-title");
+  if (title) title.textContent = isForm ? "Form Data Jamaah" : "Tambah Jamaah Siskopatuh";
+}
+
+function scanMock(type) {
+  jamaahMode("form");
+  const ktp = document.getElementById("jm-ocr-ktp");
+  const paspor = document.getElementById("jm-ocr-paspor");
+  if (ktp) ktp.classList.toggle("hidden", type !== "ktp");
+  if (paspor) paspor.classList.toggle("hidden", type !== "paspor");
+}
+
+// ---------- View Hitung Harga: sub-tab Kalkulator / Database ----------
+function laSub(which) {
+  const kalk = document.getElementById("la-kalkulator");
+  const db = document.getElementById("la-database");
+  if (kalk) kalk.classList.toggle("hidden", which !== "kalkulator");
+  if (db) db.classList.toggle("hidden", which !== "database");
+  const k = document.getElementById("la-tab-kalkulator"), d = document.getElementById("la-tab-database");
+  const on = "flex items-center gap-1.5 rounded-full bg-ku-700 px-5 py-2 text-[12px] font-bold text-cream transition-all duration-500";
+  const off = "flex items-center gap-1.5 rounded-full px-5 py-2 text-[12px] font-bold text-inksoft transition-all duration-500";
+  if (k) k.className = which === "kalkulator" ? on : off;
+  if (d) d.className = which === "database" ? on : off;
+}
+
+// ---------- View Users: sub-tab Staff / Entitas ----------
+function usersSub(which) {
+  const staff = document.getElementById("us-staff");
+  const entitas = document.getElementById("us-entitas");
+  if (staff) staff.classList.toggle("hidden", which !== "staff");
+  if (entitas) entitas.classList.toggle("hidden", which !== "entitas");
+  const s = document.getElementById("us-tab-staff"), e = document.getElementById("us-tab-entitas");
+  const on = "rounded-full bg-ku-700 px-5 py-2 text-[12px] font-bold text-cream transition-all duration-500";
+  const onIcon = "flex items-center gap-1.5 rounded-full bg-ku-700 px-5 py-2 text-[12px] font-bold text-cream transition-all duration-500";
+  const off = "rounded-full px-5 py-2 text-[12px] font-bold text-inksoft transition-all duration-500";
+  const offIcon = "flex items-center gap-1.5 rounded-full px-5 py-2 text-[12px] font-bold text-inksoft transition-all duration-500";
+  if (s) s.className = which === "staff" ? on : off;
+  if (e) e.className = which === "entitas" ? onIcon : offIcon;
+  const btn = document.getElementById("us-add-btn");
+  if (btn) {
+    btn.innerHTML = which === "staff"
+      ? '<i class="ph-light ph-plus text-sm"></i> Tambah Staff Baru<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-arrow-right text-[10px]"></i></span>'
+      : '<i class="ph-light ph-plus text-sm"></i> Register Cabang<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-arrow-right text-[10px]"></i></span>';
+    btn.setAttribute("onclick", which === "staff" ? "openUserForm(null)" : "openEntitasForm(null)");
+  }
+}
+
+// ---------- View Agency: sub-tab Tabel / Genealogy Tree ----------
+function agencySub(which) {
+  const tbl = document.getElementById("ag-table");
+  const tree = document.getElementById("ag-tree");
+  if (tbl) tbl.classList.toggle("hidden", which !== "table");
+  if (tree) tree.classList.toggle("hidden", which !== "tree");
+  const t = document.getElementById("ag-tab-table");
+  const r = document.getElementById("ag-tab-tree");
+  const on = "flex items-center gap-1.5 rounded-full bg-ku-700 px-5 py-2 text-[12px] font-bold text-cream transition-all duration-500";
+  const off = "flex items-center gap-1.5 rounded-full px-5 py-2 text-[12px] font-bold text-inksoft transition-all duration-500";
+  if (t) t.className = which === "table" ? on.replace("items-center gap-1.5 ", "") : off.replace("items-center gap-1.5 ", "");
+  if (r) r.className = which === "tree" ? on : off;
+}
+
+// ---------- Dropdowns ----------
+function toggleDropdown(id) {
+  const menu = document.getElementById(id + "-menu");
+  if (!menu) return;
+  const isOpen = !menu.classList.contains("hidden");
+  document.querySelectorAll("[id$='-menu']").forEach((m) => m.classList.add("hidden"));
+  if (!isOpen) menu.classList.remove("hidden");
+}
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".relative")) {
+    document.querySelectorAll("[id$='-menu']").forEach((m) => m.classList.add("hidden"));
+  }
+});
+
+// ---------- Read-Only Mode Toggle ----------
+let readOnly = false;
+function toggleReadOnly() {
+  readOnly = !readOnly;
+  const b = document.getElementById("readonly-banner");
+  if (b) {
+    b.classList.toggle("hidden", !readOnly);
+    b.classList.toggle("flex", readOnly);
+  }
+  document.querySelectorAll(".btn-primary, .btn-gold").forEach((btn) => {
+    if (btn.closest("[data-allow-readonly]")) return;
+    if (readOnly) {
+      btn.dataset.orig = btn.onclick;
+      btn.setAttribute("disabled", "");
+      btn.classList.add("opacity-40", "pointer-events-none");
+    } else {
+      btn.removeAttribute("disabled");
+      btn.classList.remove("opacity-40", "pointer-events-none");
+    }
+  });
+}
+
+// ---------- Google Apps Script Synchronization Bridge ----------
+window.gasSync = {
+  syncToSheets: function () {
+    if (typeof google === 'undefined' || !google.script || !google.script.run) {
+      (window.dnzyToast || alert)("Operasi ini berjalan di Google Apps Script environment.", "warning", 4000, "GAS Environment");
+      return;
+    }
+    const btn = event ? event.target : null;
+    if (btn) btn.innerText = "Menyimpan ke Sheets...";
+    google.script.run
+      .withSuccessHandler((res) => {
+        if (btn) btn.innerText = "Sinkronisasi Berhasil!";
+        setTimeout(() => { if (btn) btn.innerText = "Sync ke Google Sheets"; }, 2500);
+        console.log("GAS Sync success:", res);
+        (window.dnzyToast || alert)("Database Google Sheets berhasil disinkronisasi!", "success", 4000, "Sinkronisasi Berhasil");
+      })
+      .withFailureHandler((err) => {
+        if (btn) btn.innerText = "Gagal Sinkronisasi";
+        (window.dnzyToast || alert)("Gagal sinkronisasi: " + err.message, "error", 4000, "Sinkronisasi Gagal");
+      })
+      .apiSetupDatabase();
+  }
+};
+
+// ---------- Global Avatar & Akun Setup (Safe Initialization) ----------
+window.renderUserAvatar = window.renderUserAvatar || function (photoUrl) {
+  var photo = photoUrl;
+  if (!photo) {
+    try { photo = localStorage.getItem("dnzy_user_photo") || ""; } catch (e) { photo = ""; }
+  }
+  var initial = "U";
+  var topBarBtn = document.getElementById("topbar-user-avatar");
+  if (topBarBtn) {
+    if (photo) topBarBtn.innerHTML = '<img src="' + photo + '" style="width:100%;height:100%;border-radius:9999px;object-fit:cover;" alt="Foto Profil">';
+    else topBarBtn.innerHTML = '<span data-user-initial="">' + initial + '</span>';
+  }
+  var akunAvatar = document.getElementById("akun-avatar-preview");
+  if (akunAvatar) {
+    if (photo) akunAvatar.innerHTML = '<img src="' + photo + '" style="width:100%;height:100%;border-radius:9999px;object-fit:cover;" alt="Foto Profil">';
+    else akunAvatar.innerHTML = '<span data-user-initial="" class="text-2xl font-bold text-gold-300">' + initial + '</span>';
+  }
+  var btnHapus = document.getElementById("akun-btn-hapus-foto");
+  if (btnHapus) {
+    if (photo) btnHapus.classList.remove("hidden");
+    else btnHapus.classList.add("hidden");
+  }
+  var sidebarAvatar = document.getElementById("sidebar-user-avatar");
+  if (sidebarAvatar) {
+    if (photo) sidebarAvatar.innerHTML = '<img src="' + photo + '" style="width:100%;height:100%;border-radius:9999px;object-fit:cover;" alt="Foto Profil">';
+    else sidebarAvatar.innerHTML = '<span data-user-initial="">' + initial + '</span>';
+  }
+};
+
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.renderUserAvatar) window.renderUserAvatar();
+});
+</script>

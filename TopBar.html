@@ -1,0 +1,25 @@
+<header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-hairline bg-cream/85 px-5 backdrop-blur-xl md:px-7">
+  <div class="flex items-center gap-3">
+    <button onclick="toggleSidebar()" class="flex h-9 w-9 items-center justify-center rounded-full border border-hairline bg-white/70 text-inksoft lg:hidden"><i class="ph-light ph-list text-base"></i></button>
+    <div>
+      <h1 class="font-display text-lg font-medium text-ink md:text-xl" data-user-entitas-label="">Kantor Pusat</h1>
+      <p class="hidden font-mono text-[10px] font-medium tracking-wider text-inksoft/70 uppercase md:block">ID Wilayah: <span data-user-entitas="">PST-01</span> - <span data-user-role="">Owner</span></p>
+    </div>
+  </div>
+  <div class="flex items-center gap-2.5 md:gap-3">
+    <span class="hidden items-center gap-1.5 rounded-full border border-ku-700/20 bg-ku-50 px-3 py-1.5 text-[11px] font-bold text-ku-600 md:flex"><i class="ph-light ph-seal-check text-xs"></i> <span data-license-badge="">License Aktif</span></span>
+    <button onclick="showView(document.querySelector('.nav-link.active')?.dataset.view || 'dashboard')" class="flex h-9 w-9 items-center justify-center rounded-full border border-hairline bg-white/70 text-inksoft transition-colors hover:text-ku-700" title="Segarkan seluruh data"><i class="ph-light ph-arrows-clockwise text-base"></i></button>
+    <div class="hidden text-right md:block">
+      <p class="text-[13px] font-bold text-ink" data-user-nama="">Ummu Aisyah</p>
+      <p class="text-[10px] font-bold tracking-wider text-gold-600 uppercase" data-user-role="">Owner</p>
+    </div>
+    <button type="button" id="topbar-user-avatar" onclick="showView('akun')" style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 9999px; padding: 0;" class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ku-950 font-bold text-gold-300 ring-2 ring-gold-500/50 transition-shadow hover:ring-gold-400" title="Akun saya" aria-label="Akun saya"><span data-user-initial="">U</span></button>
+  </div>
+</header>
+
+<!-- READ_ONLY banner (PRD 9.7) -->
+<div id="readonly-banner" class="hidden items-center justify-center gap-3 border-b border-warn/25 bg-warnbg px-6 py-3">
+  <i class="ph-light ph-eye-slash text-base text-warn"></i>
+  <p class="text-[12px] font-semibold text-warn">Mode READ ONLY - license belum diperbarui. Lihat &amp; ekspor data tetap bisa, semua operasi tulis dinonaktifkan.</p>
+  <button class="ml-2 rounded-full bg-ku-700 px-4 py-1.5 text-[11px] font-bold text-cream">Perbarui Langganan</button>
+</div>

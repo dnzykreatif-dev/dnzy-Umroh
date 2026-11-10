@@ -1,0 +1,90 @@
+<section class="view" id="view-agency">
+          <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
+            <!-- Toggle: Tabel / Genealogy Tree (paralel agencyTab GAS) -->
+            <div class="flex rounded-full border border-hairline bg-white/70 p-1">
+              <button id="ag-tab-table" onclick="agencySub('table')" class="rounded-full bg-ku-700 px-5 py-2 text-[12px] font-bold text-cream transition-all duration-500">Data Tabel Agen</button>
+              <button id="ag-tab-tree" onclick="agencySub('tree')" class="flex items-center gap-1.5 rounded-full px-5 py-2 text-[12px] font-bold text-inksoft transition-all duration-500"><i class="ph-light ph-tree-structure text-sm"></i>Pohon Perekrut</button>
+            </div>
+            <div class="flex w-full flex-wrap items-center gap-2.5 md:w-auto">
+              <select class="f-input !w-auto rounded-full font-medium text-inksoft"><option>Semua Entitas</option><option>PST-01 Pusat</option><option>Cabang Jakarta</option><option>Cabang Surabaya</option></select>
+              <select class="f-input !w-auto rounded-full font-medium text-inksoft"><option>Semua Status</option><option>AKTIF</option><option>NON AKTIF</option></select>
+              <div class="flex min-w-[180px] flex-1 items-center gap-2 rounded-full bg-white px-4 py-2 shadow-innerhl">
+                <i class="ph-light ph-magnifying-glass text-sm text-inksoft/50"></i>
+                <input class="w-full bg-transparent text-[12px] outline-none placeholder:text-inksoft/50" placeholder="Cari Nama Agen...">
+              </div>
+              <button onclick="openAgenForm(null)" class="btn-primary"><i class="ph-light ph-plus text-sm"></i> Tambah Agen Baru<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-arrow-right text-[10px]"></i></span></button>
+            </div>
+          </div>
+
+          <!-- Sub: Data Tabel Agen -->
+          <div id="ag-table" class="grid grid-cols-1 gap-5 xl:grid-cols-3">
+            <div class="card xl:col-span-2"><div class="card-in">
+              <div class="overflow-x-auto">
+                <table class="tbl min-w-[980px]">
+                  <thead><tr><th>Nama Agen</th><th>Tier</th><th>No. WhatsApp</th><th>Wilayah</th><th>Rekening Pencairan</th><th class="text-right">Aksi</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><p class="font-bold text-ink">H. Karimullah</p><p class="text-[11px] text-inksoft/70">AGN-101</p></td>
+                      <td><span class="badge badge-ok">Tier 1</span></td>
+                      <td class="font-mono text-xs text-inksoft">081288991020</td>
+                      <td class="text-[12px] text-inksoft">Jakarta Timur</td>
+                      <td class="text-[12px] text-inksoft">BCA - 1234567890</td>
+                      <td class="text-right"><div class="flex justify-end gap-1"><button onclick="openAgenForm('AGN-101')" class="btn-sm" title="Edit"><i class="ph-light ph-pencil-simple text-sm"></i></button></div></td>
+                    </tr>
+                    <tr>
+                      <td><p class="font-bold text-ink">Fatimah Az-Zahra</p><p class="text-[11px] text-inksoft/70">AGN-104</p></td>
+                      <td><span class="badge badge-ok">Tier 2</span></td>
+                      <td class="font-mono text-xs text-inksoft">085722113030</td>
+                      <td class="text-[12px] text-inksoft">Depok</td>
+                      <td class="text-[12px] text-inksoft">BSI - 7211987654</td>
+                      <td class="text-right"><div class="flex justify-end gap-1"><button onclick="openAgenForm('AGN-104')" class="btn-sm" title="Edit"><i class="ph-light ph-pencil-simple text-sm"></i></button></div></td>
+                    </tr>
+                    <tr>
+                      <td><p class="font-bold text-ink/50">Salman Al-Farisi</p><p class="text-[11px] text-inksoft/70">AGN-106</p></td>
+                      <td><span class="badge badge-mute">Tier 3</span></td>
+                      <td class="font-mono text-xs text-inksoft">082144556677</td>
+                      <td class="text-[12px] text-inksoft">Bekasi</td>
+                      <td class="text-[12px] text-inksoft">-</td>
+                      <td class="text-right"><div class="flex justify-end gap-1"><button onclick="openAgenForm('AGN-106')" class="btn-sm" title="Edit"><i class="ph-light ph-pencil-simple text-sm"></i></button></div></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4 text-[12px] text-inksoft">
+                <p>Menampilkan 3 agen terdaftar</p>
+              </div>
+            </div></div>
+
+            <!-- Panel kanan: Tabungan agregat + Distribusi -->
+            <div class="flex flex-col gap-5">
+              <div class="card-dark"><div class="card-dark-in">
+                <h3 class="border-b border-cream/10 pb-3 text-[12px] font-bold tracking-[0.15em] text-gold-300 uppercase">Rekapitulasi Komisi</h3>
+                <div class="mt-4 space-y-3">
+                  <div class="flex items-center justify-between rounded-xl bg-cream/5 px-4 py-3"><span class="text-[12px] text-cream/70">Siap Cair</span><span class="font-mono text-sm font-bold text-gold-300">Rp 8,3jt</span></div>
+                  <div class="flex items-center justify-between rounded-xl bg-cream/5 px-4 py-3"><span class="text-[12px] text-cream/70">Menunggu Pelunasan</span><span class="font-mono text-sm font-bold text-ku-300">Rp 1,4jt</span></div>
+                  <div class="flex items-center justify-between rounded-xl bg-cream/5 px-4 py-3"><span class="text-[12px] text-cream/70">Sudah Dicairkan</span><span class="font-mono text-sm font-bold text-cream/60">Rp 21,6jt</span></div>
+                </div>
+                <p class="mt-4 text-[11px] leading-relaxed text-cream/70">Komisi dapat dicairkan setelah pembayaran jamaah lunas.</p>
+              </div></div>
+              <div class="card"><div class="card-in">
+                <h3 class="font-semibold text-ink">Pengaturan Komisi</h3>
+                <p class="mt-1 text-[12px] leading-relaxed text-inksoft">Atur nominal bagi hasil komisi untuk setiap tingkatan (tier) agen dan cabang.</p>
+                <button type="button" data-perm="komisi_lihat" onclick="showView('komisi')" class="mt-3 flex items-center gap-1.5 text-[12px] font-semibold text-ku-700 hover:text-ku-900"><i class="ph-light ph-coins text-sm"></i> Buka Pengaturan Komisi Agen</button>
+              </div></div>
+            </div>
+          </div>
+
+          <!-- Sub: Genealogy Tree (paralel struktur tree GAS) -->
+          <div id="ag-tree" class="card hidden"><div class="card-in">
+            <div class="mb-5 border-b border-hairline pb-4">
+              <h3 class="font-semibold text-ink">Pohon Jaringan Agen</h3>
+              <p class="text-[12px] text-inksoft">Struktur jaringan kemitraan dan perekrutan agen.</p>
+            </div>
+            <ul class="space-y-5">
+              <li class="rounded-2xl border border-hairline bg-white p-4">
+                <p class="font-bold text-ink">H. Karimullah <span class="badge badge-ok ml-2">Tier 1</span></p>
+                <p class="text-[12px] text-inksoft">Jakarta Timur - 081288991020</p>
+              </li>
+            </ul>
+          </div></div>
+        </section>

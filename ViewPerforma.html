@@ -1,0 +1,56 @@
+<section class="view" id="view-performa">
+          <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div><h2 class="font-display text-2xl font-medium text-ink">Laporan Performa</h2><p class="text-[13px] text-inksoft">Evaluasi produktivitas agen &amp; keterisian kloter keberangkatan</p></div>
+            <div class="flex rounded-full border border-hairline bg-white/70 p-1" id="pf-periode">
+              <button onclick="performaSetPeriode('semua')" class="pf-per-btn rounded-full px-4 py-1.5 text-[12px] font-semibold text-inksoft">Semua</button>
+              <button onclick="performaSetPeriode('bulan_ini')" class="pf-per-btn rounded-full bg-ku-700 px-4 py-1.5 text-[12px] font-semibold text-cream">Bulan Ini</button>
+              <button onclick="performaSetPeriode('tahun_ini')" class="pf-per-btn rounded-full px-4 py-1.5 text-[12px] font-semibold text-inksoft">Tahun Ini</button>
+            </div>
+          </div>
+
+          <!-- Mode PUSAT -->
+          <div id="pf-pusat" class="space-y-5">
+            <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
+              <div class="card"><div class="card-in">
+                <h3 class="font-semibold text-ink">Vitalitas Agen per Cabang</h3>
+                <p class="text-xs text-inksoft">Perbandingan agen aktif closing vs pasif</p>
+                <div class="mt-6 space-y-4" id="pf-vitalitas">
+                  <div><div class="mb-1 flex justify-between text-xs font-semibold"><span>Kantor Pusat (PST-01)</span><span class="font-mono text-ku-700">3 Aktif / 3 Total</span></div><div class="h-2.5 overflow-hidden rounded-full bg-creamdark"><div class="h-full rounded-full bg-ku-600" style="width:100%"></div></div></div>
+                  <div><div class="mb-1 flex justify-between text-xs font-semibold"><span>Cabang Bandung (CBG-BDG)</span><span class="font-mono text-ku-700">1 Aktif / 1 Total</span></div><div class="h-2.5 overflow-hidden rounded-full bg-creamdark"><div class="h-full rounded-full bg-ku-600" style="width:100%"></div></div></div>
+                </div>
+              </div></div>
+              <div class="card"><div class="card-in">
+                <h3 class="font-semibold text-ink">Distribusi Penjualan per Paket</h3>
+                <p class="text-xs text-inksoft" id="pf-distribusi-note">Periode: Bulan Ini</p>
+                <div class="mt-6 space-y-4" id="pf-distribusi">
+                  <div><div class="mb-1 flex justify-between text-xs font-semibold"><span>Umroh Reguler Bintang 5</span><span class="font-mono">9 Jamaah (47%)</span></div><div class="h-2.5 overflow-hidden rounded-full bg-creamdark"><div class="h-full rounded-full bg-ku-600" style="width:47%"></div></div></div>
+                  <div><div class="mb-1 flex justify-between text-xs font-semibold"><span>Umroh Awal Ramadhan VIP</span><span class="font-mono">6 Jamaah (32%)</span></div><div class="h-2.5 overflow-hidden rounded-full bg-creamdark"><div class="h-full rounded-full bg-gold-500" style="width:32%"></div></div></div>
+                  <div><div class="mb-1 flex justify-between text-xs font-semibold"><span>Umroh Plus Turki Cappadocia</span><span class="font-mono">4 Jamaah (21%)</span></div><div class="h-2.5 overflow-hidden rounded-full bg-creamdark"><div class="h-full rounded-full bg-ku-400" style="width:21%"></div></div></div>
+                </div>
+              </div></div>
+            </div>
+            <div class="card"><div class="card-in">
+              <h3 class="font-semibold text-ink">Occupancy - 3 Keberangkatan Terdekat</h3>
+              <p class="text-xs text-inksoft">Kursi terpakai vs sisa kapasitas kloter</p>
+              <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3" id="pf-occupancy">
+                <div class="rounded-2xl border border-hairline bg-white/70 p-4"><p class="font-mono text-[11px] font-bold text-ku-600">KL-1448-01</p><p class="mt-0.5 font-semibold text-ink">Umroh Reguler Bintang 5</p><p class="mt-2 font-mono text-lg font-bold text-ink">38 / 45 Seat <span class="text-xs text-ku-600">(84%)</span></p></div>
+                <div class="rounded-2xl border border-hairline bg-white/70 p-4"><p class="font-mono text-[11px] font-bold text-ku-600">KL-1448-02</p><p class="mt-0.5 font-semibold text-ink">Umroh Plus Turki</p><p class="mt-2 font-mono text-lg font-bold text-ink">28 / 35 Seat <span class="text-xs text-ku-600">(80%)</span></p></div>
+                <div class="rounded-2xl border border-hairline bg-white/70 p-4"><p class="font-mono text-[11px] font-bold text-ku-600">KL-1448-03</p><p class="mt-0.5 font-semibold text-ink">Umroh Ramadhan VIP</p><p class="mt-2 font-mono text-lg font-bold text-ink">27 / 30 Seat <span class="text-xs text-gold-600">(90%)</span></p></div>
+              </div>
+            </div></div>
+          </div>
+
+          <!-- Mode CABANG -->
+          <div id="pf-cabang" class="hidden grid grid-cols-1 gap-5 xl:grid-cols-3">
+            <div class="card xl:col-span-2"><div class="card-in">
+              <h3 class="font-semibold text-ink">Produktivitas Agen</h3>
+              <p class="text-xs text-inksoft">Closing dalam periode terpilih</p>
+              <div class="mt-6 space-y-4" id="pf-top-agen"><p class="text-[12px] text-inksoft/60">Tidak ada data tambahan.</p></div>
+            </div></div>
+            <div class="card-dark"><div class="card-dark-in">
+              <h3 class="border-b border-cream/10 pb-3 text-[12px] font-bold tracking-[0.15em] text-gold-300 uppercase">Agen Perlu Pendampingan</h3>
+              <p class="mt-3 text-[11px] text-cream/50">Agen aktif tanpa closing dalam periode</p>
+              <div class="mt-4 space-y-2.5" id="pf-pasif"><p class="text-[12px] text-cream/40">Semua agen aktif berproduksi.</p></div>
+            </div></div>
+          </div>
+        </section>

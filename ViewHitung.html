@@ -1,0 +1,177 @@
+<section class="view" id="view-hitung">
+          <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
+            <div><h2 class="font-display text-2xl font-medium text-ink">Dynamic Land Arrangement Hub</h2><p class="text-[13px] text-inksoft">Kendali komponen harga dasar dan kalkulator simulasi paket umrah kustom</p></div>
+            <!-- Toggle: Kalkulator / Database (paralel laTab GAS) -->
+            <div class="flex rounded-full border border-hairline bg-white/70 p-1">
+              <button id="la-tab-kalkulator" onclick="laSub('kalkulator')" class="flex items-center gap-1.5 rounded-full bg-ku-700 px-5 py-2 text-[12px] font-bold text-cream transition-all duration-500"><i class="ph-light ph-calculator text-sm"></i>Kalkulator Simulasi</button>
+              <button id="la-tab-database" onclick="laSub('database')" class="flex items-center gap-1.5 rounded-full px-5 py-2 text-[12px] font-bold text-inksoft transition-all duration-500"><i class="ph-light ph-database text-sm"></i>Database Master LA</button>
+            </div>
+          </div>
+
+          <!-- Sub: Kalkulator Simulasi -->
+          <div id="la-kalkulator" class="grid grid-cols-1 gap-5 lg:grid-cols-12">
+            <div class="space-y-5 lg:col-span-8">
+              <!-- 1. Informasi Rombongan -->
+              <div class="card"><div class="card-in relative overflow-hidden">
+                <span class="absolute top-0 left-0 h-full w-1 bg-ku-400"></span>
+                <h3 class="border-b border-hairline pb-3 text-[12px] font-bold tracking-wider text-ink uppercase">1. Informasi Rombongan</h3>
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div><label class="f-label">Nama Grup / Instansi</label><input id="la-nama-grup" class="f-input" placeholder="Misal: Bank Jatim / Rombongan Kiai"></div>
+                  <div><label class="f-label">Jumlah Jamaah (Pax)</label><div class="flex"><input type="number" id="la-pax" value="25" placeholder="25" class="f-input !rounded-r-none text-center font-mono !font-bold" oninput="laHitung()"><span class="flex items-center rounded-r-xl border border-l-0 border-hairline bg-creamdark/60 px-3 text-[11px] font-bold text-inksoft">Orang</span></div></div>
+                  <div><label class="f-label">Durasi Perjalanan</label><div class="flex"><input type="number" id="la-durasi" value="9" placeholder="9" class="f-input !rounded-r-none text-center font-mono !font-bold" oninput="laHitung()"><span class="flex items-center rounded-r-xl border border-l-0 border-hairline bg-creamdark/60 px-3 text-[11px] font-bold text-inksoft">Hari</span></div></div>
+                </div>
+              </div></div>
+
+              <!-- 2. Maskapai -->
+              <div class="card"><div class="card-in relative overflow-hidden">
+                <span class="absolute top-0 left-0 h-full w-1 bg-gold-400"></span>
+                <h3 class="border-b border-hairline pb-3 text-[12px] font-bold tracking-wider text-ink uppercase">2. Pemilihan Maskapai</h3>
+                <div class="mt-4">
+                  <label class="f-label">Pilih Rute &amp; Tiket Pesawat</label>
+                  <select id="la-maskapai" class="f-input" onchange="laHitung()"><option value="0">- Pilih Tiket Maskapai Terdaftar -</option><option value="13812500" selected="">Saudia Airlines (Direct JED/MED)</option><option value="16250000">Garuda Indonesia (Premium Class)</option><option value="10500000">Lion Air (Transit)</option></select>
+                </div>
+              </div></div>
+
+              <!-- 3. Hotel -->
+              <div class="card"><div class="card-in relative overflow-hidden">
+                <span class="absolute top-0 left-0 h-full w-1 bg-ku-500"></span>
+                <div class="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-hairline pb-3">
+                  <h3 class="text-[12px] font-bold tracking-wider text-ink uppercase">3. Hotel Makkah &amp; Madinah</h3>
+                  <span class="rounded-full border border-ku-500/25 bg-ku-50 px-2.5 py-0.5 text-[10px] font-bold text-ku-600">Asumsi Standar: Quad Room</span>
+                </div>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div class="rounded-2xl border border-hairline bg-white/60 p-3.5">
+                    <label class="f-label"><i class="ph-light ph-buildings text-xs"></i> Hotel Makkah</label>
+                    <select id="la-hotel-makkah" class="f-input mb-2.5" onchange="laHitung()"><option value="0">- Pilih Kontrak Hotel Makkah -</option><option value="1957500" selected="">Anjum Hotel (Bintang 5 - Quad)</option><option value="1740000">Pullman Zamzam (Bintang 5 - Quad)</option><option value="870000">Zuwar Al Bait (Bintang 3 - Quad)</option></select>
+                    <div class="flex items-center justify-between text-[11px]"><span class="font-medium text-inksoft">Durasi Menginap:</span><div class="flex items-center gap-1"><input type="number" id="la-malam-makkah" value="4" placeholder="4" oninput="laHitung()" class="f-input !w-14 !px-1 !py-1 text-center font-mono !font-bold"><span class="font-bold text-inksoft">Malam</span></div></div>
+                  </div>
+                  <div class="rounded-2xl border border-hairline bg-white/60 p-3.5">
+                    <label class="f-label"><i class="ph-light ph-mosque text-xs"></i> Hotel Madinah</label>
+                    <select id="la-hotel-madinah" class="f-input mb-2.5" onchange="laHitung()"><option value="0">- Pilih Kontrak Hotel Madinah -</option><option value="1522500" selected="">Anwar Al Madinah (Bintang 5)</option><option value="1087500">Rama Al Madinah (Bintang 4)</option><option value="652500">Muhtaroh Zahabi (Bintang 3)</option></select>
+                    <div class="flex items-center justify-between text-[11px]"><span class="font-medium text-inksoft">Durasi Menginap:</span><div class="flex items-center gap-1"><input type="number" id="la-malam-madinah" value="3" placeholder="3" oninput="laHitung()" class="f-input !w-14 !px-1 !py-1 text-center font-mono !font-bold"><span class="font-bold text-inksoft">Malam</span></div></div>
+                  </div>
+                </div>
+              </div></div>
+
+              <!-- 4. Armada & Handling -->
+              <div class="card"><div class="card-in relative overflow-hidden">
+                <span class="absolute top-0 left-0 h-full w-1 bg-gold-500"></span>
+                <h3 class="border-b border-hairline pb-3 text-[12px] font-bold tracking-wider text-ink uppercase">4. Armada &amp; Handling Logistik</h3>
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label class="f-label">Pilihan Sewa Armada Bus / Car</label>
+                    <select id="la-transport" class="f-input" onchange="laHitung()"><option value="0">- Pilih Kontrak Transportasi -</option><option value="52200000" selected="">Bus Mercedes Travego SAPTCO (45 Seat)</option><option value="23500000">Bus Coaster Hiace (12 Seat)</option><option value="9500000">GMD Luxury Limousine</option></select>
+                    <p class="mt-1.5 text-[10px] italic text-inksoft/60">*Sistem otomatis membagi beban biaya borongan armada dengan total pax rombongan.</p>
+                  </div>
+                  <div>
+                    <label class="f-label">Atribut Layanan (Include)</label>
+                    <div class="mt-2 space-y-2">
+                      <label class="flex items-center gap-2 text-[12px] font-medium text-inksoft"><input type="checkbox" checked="" disabled="" class="h-4 w-4 rounded accent-[#005136]">Muthawwif &amp; Tour Leader Indonesia</label>
+                      <label class="flex items-center gap-2 text-[12px] font-medium text-inksoft"><input type="checkbox" checked="" disabled="" class="h-4 w-4 rounded accent-[#005136]">Visa Umrah &amp; Asuransi KSA Berkelanjutan</label>
+                      <label class="flex items-center gap-2 text-[12px] font-medium text-inksoft"><input type="checkbox" checked="" class="h-4 w-4 rounded accent-[#005136]">Perlengkapan &amp; Handling Bandara International</label>
+                    </div>
+                  </div>
+                </div>
+              </div></div>
+            </div>
+
+            <!-- Panel kanan: Akumulasi HPP (sticky, paralel GAS) -->
+            <div class="sticky top-6 space-y-4 lg:col-span-4">
+              <div class="card-dark"><div class="card-dark-in !p-0">
+                <div class="border-b border-cream/10 bg-ku-950/60 p-5 text-center">
+                  <h3 class="text-[11px] font-bold tracking-widest text-gold-300 uppercase">Akumulasi HPP Riil Per Pax</h3>
+                  <p class="mt-2 font-display text-4xl font-medium text-cream" id="la-hpp">Rp 31.320.500</p>
+                  <p class="mt-1 text-[10px] text-cream/40">Sinkronisasi Kurs Sistem Terkunci Otomatis</p>
+                </div>
+                <div class="space-y-3 p-5 text-[12px]">
+                  <div class="flex justify-between text-cream/70"><span class="flex items-center gap-1.5"><i class="ph-light ph-airplane-tilt text-xs text-gold-400/70"></i>Komponen Penerbangan &amp; Visa</span><span class="font-mono font-bold text-cream" id="la-komp-visa">Rp 15.335.000</span></div>
+                  <div class="flex justify-between text-cream/70"><span class="flex items-center gap-1.5"><i class="ph-light ph-bed text-xs text-gold-400/70"></i>Komponen Sewa Kamar Akomodasi</span><span class="font-mono font-bold text-cream" id="la-komp-hotel">Rp 12.397.500</span></div>
+                  <div class="flex justify-between border-b border-cream/10 pb-3 text-cream/70"><span class="flex items-center gap-1.5"><i class="ph-light ph-bus text-xs text-gold-400/70"></i>Transport &amp; LA (Bagi Pax)</span><span class="font-mono font-bold text-cream" id="la-komp-transport">Rp 3.588.000</span></div>
+                  <div class="pt-1">
+                    <div class="mb-2 flex items-end justify-between">
+                      <label class="text-[11px] font-bold tracking-wide text-gold-300 uppercase">Tentukan Laba Cabang</label>
+                      <span class="rounded-full border border-ku-500/30 bg-ku-900 px-2 py-0.5 font-mono text-[11px] font-bold text-ku-300">Rp 1.500.000</span>
+                    </div>
+                    <input type="range" min="500000" max="10000000" step="100000" value="1500000" id="la-laba" class="w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#C8A24B]" oninput="laLabaInput(this)">
+                    <div class="mt-1 flex justify-between font-mono text-[9px] text-cream/40"><span>MIN: 500.000</span><span>MAX: 10.000.000</span></div>
+                  </div>
+                </div>
+                <div class="border-t-4 border-gold-600 bg-gradient-to-r from-gold-200 to-gold-400 p-5">
+                  <p class="mb-1 text-[11px] font-bold tracking-wider text-ku-950 uppercase">Rekomendasi Harga Jual Penawaran</p>
+                  <p class="font-display text-3xl font-medium text-ku-950" id="la-harga-jual">Rp 32.820.500</p>
+                </div>
+              </div></div>
+              <div class="grid grid-cols-2 gap-3">
+                <button onclick="alert('Draft simulasi telah tersimpan.')" class="btn-ghost flex-col !gap-1 !py-3.5 text-[10px] font-bold tracking-wider uppercase"><i class="ph-light ph-floppy-disk text-base"></i>Simpan Draft</button>
+                <button onclick="window.print()" class="flex flex-col items-center justify-center gap-1 rounded-full bg-ku-600 py-3.5 text-[10px] font-bold tracking-wider text-cream uppercase shadow-lift transition-all hover:bg-ku-700 active:scale-[0.97]"><i class="ph-light ph-file-pdf text-base"></i>Cetak Proposal</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub: Database Master LA -->
+          <div id="la-database" class="hidden space-y-5">
+            <!-- Kurs global -->
+            <div class="card-dark"><div class="card-dark-in">
+              <h3 class="mb-4 flex items-center gap-2 text-[12px] font-bold tracking-widest text-gold-300 uppercase"><i class="ph-light ph-currency-circle-dollar text-sm"></i>Global Exchange Rate Management</h3>
+              <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
+                <div>
+                  <label class="mb-1 block text-[10px] font-bold tracking-wider text-cream/40 uppercase">Kurs Arab Saudi Riyal (SAR ke IDR)</label>
+                  <div class="flex"><span class="flex items-center rounded-l-xl border border-r-0 border-cream/15 bg-cream/10 px-3 text-[12px] font-bold text-gold-300">SAR</span><input type="number" value="4350" placeholder="4350" class="w-full rounded-r-xl border border-cream/15 bg-ku-950/60 px-3 py-2.5 text-right font-mono !text-[13px] !font-bold !text-cream outline-none focus:border-gold-400/50"></div>
+                </div>
+                <div>
+                  <label class="mb-1 block text-[10px] font-bold tracking-wider text-cream/40 uppercase">Kurs United States Dollar (USD ke IDR)</label>
+                  <div class="flex"><span class="flex items-center rounded-l-xl border border-r-0 border-cream/15 bg-cream/10 px-3 text-[12px] font-bold text-gold-300">$ USD</span><input type="number" value="16250" placeholder="16250" class="w-full rounded-r-xl border border-cream/15 bg-ku-950/60 px-3 py-2.5 text-right font-mono !text-[13px] !font-bold !text-cream outline-none focus:border-gold-400/50"></div>
+                </div>
+                <button onclick="alert('Kurs global berhasil diperbarui.')" class="flex w-full items-center justify-center gap-2 rounded-full bg-gold-400 py-2.5 text-[11px] font-black tracking-wider text-ku-950 uppercase shadow-md transition-all hover:bg-gold-300 active:scale-[0.97]"><i class="ph-light ph-arrows-clockwise text-xs"></i>Update Kurs Global</button>
+              </div>
+            </div></div>
+
+            <!-- Log komponen vendor -->
+            <div class="card"><div class="card-in">
+              <div class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
+                <div><h3 class="text-[13px] font-bold tracking-wide text-ink uppercase">Log Komponen Kontrak Suplier</h3><p class="mt-0.5 text-[11px] text-inksoft">Gudang harga modal bersih untuk seluruh jaringan kemitraan cabang nasional</p></div>
+                <button onclick="openModal('modal-komponen')" class="btn-primary"><i class="ph-light ph-plus text-sm"></i> Tambah Komponen Vendor<span class="flex h-6 w-6 items-center justify-center rounded-full bg-cream/15"><i class="ph-light ph-arrow-right text-[10px]"></i></span></button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="tbl min-w-[820px]">
+                  <thead><tr><th>Kategori</th><th>Nama Item &amp; Spesifikasi</th><th class="text-right">Harga Modal Vendor</th><th class="text-right">Konversi Rupiah</th><th class="text-center">Sifat Biaya</th><th class="text-right">Aksi</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="badge badge-ok">Hotel Makkah</span></td>
+                      <td><p class="font-bold text-ink">Anjum Hotel Makkah</p><p class="text-[10px] font-normal text-inksoft/60">Bintang 5 - Quad Room</p></td>
+                      <td class="text-right font-mono text-[12px] font-bold text-inksoft">SAR 450</td>
+                      <td class="text-right font-mono text-[12px] font-bold text-ku-600">Rp 1.957.500</td>
+                      <td class="text-center"><span class="badge badge-mute">Per Pax / Malam</span></td>
+                      <td class="text-right"><div class="flex justify-end gap-1"><button class="btn-sm" title="Edit"><i class="ph-light ph-pencil-simple text-sm"></i></button><button class="btn-sm hover:!bg-dangerbg hover:!text-danger" title="Hapus"><i class="ph-light ph-trash text-sm"></i></button></div></td>
+                    </tr>
+                    <tr>
+                      <td><span class="badge" style="background:#f3e8ff;color:#6b21a8">Transportasi</span></td>
+                      <td><p class="font-bold text-ink">Bus Mercedes Travego SAPTCO</p><p class="text-[10px] font-normal text-inksoft/60">Kapasitas 45 Seat</p></td>
+                      <td class="text-right font-mono text-[12px] font-bold text-inksoft">SAR 12.000</td>
+                      <td class="text-right font-mono text-[12px] font-bold text-ku-600">Rp 52.200.000</td>
+                      <td class="text-center"><span class="badge badge-warn">Borongan (Bagi Pax)</span></td>
+                      <td class="text-right"><div class="flex justify-end gap-1"><button class="btn-sm"><i class="ph-light ph-pencil-simple text-sm"></i></button><button class="btn-sm hover:!bg-dangerbg hover:!text-danger"><i class="ph-light ph-trash text-sm"></i></button></div></td>
+                    </tr>
+                    <tr>
+                      <td><span class="badge" style="background:#dbeafe;color:#1e40af">Tiket Pesawat</span></td>
+                      <td><p class="font-bold text-ink">Saudia Airlines (Direct JED/MED)</p><p class="text-[10px] font-normal text-inksoft/60">Economy Class PP</p></td>
+                      <td class="text-right font-mono text-[12px] font-bold text-inksoft">USD 850</td>
+                      <td class="text-right font-mono text-[12px] font-bold text-ku-600">Rp 13.812.500</td>
+                      <td class="text-center"><span class="badge badge-mute">Per Pax</span></td>
+                      <td class="text-right"><div class="flex justify-end gap-1"><button class="btn-sm"><i class="ph-light ph-pencil-simple text-sm"></i></button><button class="btn-sm hover:!bg-dangerbg hover:!text-danger"><i class="ph-light ph-trash text-sm"></i></button></div></td>
+                    </tr>
+                    <tr>
+                      <td><span class="badge badge-ok" style="background:#fef3c7;color:#92400e">Visa &amp; Handling</span></td>
+                      <td><p class="font-bold text-ink">Visa Umrah + Asuransi KSA</p><p class="text-[10px] font-normal text-inksoft/60">Paket handling berkelanjutan</p></td>
+                      <td class="text-right font-mono text-[12px] font-bold text-inksoft">SAR 350</td>
+                      <td class="text-right font-mono text-[12px] font-bold text-ku-600">Rp 1.522.500</td>
+                      <td class="text-center"><span class="badge badge-mute">Per Pax</span></td>
+                      <td class="text-right"><div class="flex justify-end gap-1"><button class="btn-sm"><i class="ph-light ph-pencil-simple text-sm"></i></button><button class="btn-sm hover:!bg-dangerbg hover:!text-danger"><i class="ph-light ph-trash text-sm"></i></button></div></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="mt-4 border-t border-hairline pt-4 text-[11px] text-inksoft"><i class="ph-light ph-info text-xs"></i> Kalkulator simulasi menghitung harga pokok secara otomatis berdasarkan komponen kontrak dan kurs global di atas.</p>
+            </div></div>
+          </div>
+        </section>

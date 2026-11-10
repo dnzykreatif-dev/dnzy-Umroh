@@ -1,0 +1,13 @@
+# Dependencies & Temporary Files
+node_modules/
+.tmp/
+*.log
+.DS_Store
+Thumbs.db
+
+# Clasp Authentication (jangan commit kredensial personal)
+.clasprc.json
+
+# Local scratch / test files
+scratch/
+temp_*
